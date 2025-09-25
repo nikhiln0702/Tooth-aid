@@ -2,6 +2,7 @@ import React,{useState} from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {View,Text,TextInput,StyleSheet,Alert,Pressable,ActivityIndicator,KeyboardAvoidingView,Platform,ScrollView,} from "react-native";
 import axios from "axios";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const COLORS = {
@@ -19,6 +20,8 @@ function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false); // State for loading indicator
   const [error, setError] = useState(""); // State for displaying errors
+
+  const router = useRouter();
 
   const handleLogin = async () => {
     // Clear previous errors
@@ -42,7 +45,7 @@ function LoginScreen({ navigation }) {
       if (res.data.token) {
         await AsyncStorage.setItem("token", res.data.token); // store token securely
   Alert.alert("Login Success", "You are logged in!");
-  navigation.navigate("Home");
+        router.replace("/home");
       }
     } catch (err) {
       console.error(err);
