@@ -5,6 +5,7 @@ import User from "../models/User.js";
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    console.log(req.body);
 
     // Check if user exists
     let user = await User.findOne({ email });
@@ -18,7 +19,7 @@ export const signup = async (req, res) => {
     user = new User({ name, email, password: hashedPassword });
     await user.save();
 
-    res.json({ msg: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

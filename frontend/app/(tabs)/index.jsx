@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {View,Text,TextInput,StyleSheet,Alert,Pressable,ActivityIndicator,KeyboardAvoidingView,Platform,ScrollView,} from "react-native";
 import axios from "axios";
 import LoginScreen from "./login";
+import SignupScreen from "./signup";
 
 const Stack = createNativeStackNavigator();
 
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
       {/* <Stack.Screen name="Upload" component={UploadScreen} /> */}
       <Stack.Screen name="Results" component={ResultsScreen} />
     </Stack.Navigator>

@@ -1,9 +1,20 @@
-import React,{useState} from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import {View,Text,TextInput,StyleSheet,Alert,Pressable,ActivityIndicator,KeyboardAvoidingView,Platform,ScrollView,} from "react-native";
+// SignupScreen.js
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Alert,
+  Pressable, // Use Pressable for custom buttons
+  ActivityIndicator, // To show a loading spinner
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Define colors for easy theming (ideally, this would be in a shared file)
 const COLORS = {
   primary: "#007BFF",
   white: "#FFFFFF",
@@ -14,44 +25,42 @@ const COLORS = {
   success: "#4CAF50",
 };
 
-function LoginScreen({ navigation }) {
+export default function SignupScreen({ navigation }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false); // State for loading indicator
   const [error, setError] = useState(""); // State for displaying errors
 
-  const handleLogin = async () => {
-    // Clear previous errors
-    setError("");
-    // Prevent multiple submissions
+  const handleSignup = async () => {
+    setError(""); // Clear previous errors
     if (isLoading) return;
 
-    // Basic validation
-    if (!email || !password) {
-      setError("Please enter both email and password.");
+    if (!name || !email || !password) {
+      setError("Please fill in all fields.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login/", {
+      const res = await axios.post("http://localhost:5000/api/auth/signup/", {
+        name,
         email,
         password,
       });
 
-      if (res.data.token) {
-        await AsyncStorage.setItem("token", res.data.token); // store token securely
-  Alert.alert("Login Success", "You are logged in!");
-  navigation.navigate("Home");
+      if (res.data?.message || res.status === 201) {
+        Alert.alert(
+          "Success",
+          "Your account has been created successfully! Please log in."
+        );
+        navigation.navigate("Login"); // Go to login after successful signup
       }
     } catch (err) {
       console.error(err);
-      // Provide a more specific error message if possible
-      setError(
-        err.response?.data?.message || "Invalid credentials or server error."
-      );
+      setError(err.response?.data?.error || "An unexpected error occurred.");
     } finally {
-      setIsLoading(false); // Stop loading indicator
+      setIsLoading(false);
     }
   };
 
@@ -62,8 +71,17 @@ function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.innerContainer}>
-          <Text style={styles.header}>Welcome Back!</Text>
-          <Text style={styles.subHeader}>Sign in to continue</Text>
+          <Text style={styles.header}>Create Account</Text>
+          <Text style={styles.subHeader}>Start your journey with us</Text>
+
+          {/* Name Input */}
+          <Text style={styles.label}>Full Name</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+          />
 
           {/* Email Input */}
           <Text style={styles.label}>Email Address</Text>
@@ -79,6 +97,8 @@ function LoginScreen({ navigation }) {
           <Text style={styles.label}>Password</Text>
           <TextInput
             style={styles.input}
+            placeholder="Choose a strong password"
+            placeholderTextColor={COLORS.darkGray}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -87,28 +107,28 @@ function LoginScreen({ navigation }) {
           {/* Error Message Display */}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          {/* Login Button */}
+          {/* Signup Button */}
           <Pressable
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed,
               isLoading && styles.buttonDisabled,
             ]}
-            onPress={handleLogin}
+            onPress={handleSignup}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>Sign Up</Text>
             )}
           </Pressable>
 
-          {/* Signup Link */}
+          {/* Login Link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Pressable onPress={() => navigation.navigate("Signup")}>
-              <Text style={[styles.footerText, styles.linkText]}>Sign Up</Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <Pressable onPress={() => navigation.navigate("Login")}>
+              <Text style={[styles.footerText, styles.linkText]}>Login</Text>
             </Pressable>
           </View>
         </View>
@@ -117,7 +137,7 @@ function LoginScreen({ navigation }) {
   );
 }
 
-// The new and improved StyleSheet
+// Styles are consistent with the improved Login screen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -162,7 +182,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   button: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.success, // Using a green color for signup
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: "center",
@@ -178,7 +198,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   buttonDisabled: {
-    backgroundColor: "#AECBFA", // Lighter shade of primary for disabled state
+    backgroundColor: "#A3D9A5", // Lighter shade of success for disabled state
   },
   buttonText: {
     color: COLORS.white,
@@ -205,5 +225,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-export default LoginScreen;
-
