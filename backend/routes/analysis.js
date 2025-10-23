@@ -8,6 +8,7 @@ const router = express.Router();
 
 // POST /analysis/upload
 router.post("/upload",auth,upload.single("image"),uploadImage);
-router.post("/history",auth,history)
+// GET /analysis/history
+router.get("/history",auth,history)
 
 export default router;

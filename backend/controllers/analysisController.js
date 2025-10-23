@@ -28,7 +28,7 @@ export const uploadImage = async (req, res) => {
 export const history = async (req, res) => {
   try {
     const history = await Analysis.find({ userId: req.user.id }).sort({ timestamp: -1 });
-    res.json({ history });
+    res.json(history); // Return the array directly
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch history" });
   }

@@ -1,21 +1,22 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from "../models/User.js";
+import validator from 'validator';
 
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    console.log(req.body);
 
-    // Check if user exists
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ msg: "Invalid email format" });
+    }
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: "User already exists" });
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Save user
     user = new User({ name, email, password: hashedPassword });
     await user.save();
 

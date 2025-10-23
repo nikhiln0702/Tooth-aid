@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Uncomment when you set up token storage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define colors for easy theming (ideally, this would be in a shared file)
 const COLORS = {
@@ -20,18 +20,15 @@ const COLORS = {
   darkGray: "#888888",
   danger: "#DC3545",
   success: "#4CAF50",
-  background: "#F8F9FA", // A light background color for the screen
+  background: "#F8F9FA",
 };
 
 export default function Homepage() {
   const router = useRouter(); // use router instead of navigation
 
   const handleLogout = async () => {
-     try {
-      const token = await AsyncStorage.getItem("token");
-      console.log(token);
-      await AsyncStorage.removeItem("token"); // remove token
-      console.log("Token removed"); // debug line
+    try {
+      await AsyncStorage.removeItem("token");
       router.replace("/login"); // navigate to login
     } catch (error) {
       console.error("Error clearing token:", error);
@@ -58,16 +55,29 @@ export default function Homepage() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Ready to Start?</Text>
           <Text style={styles.cardText}>
-            Press the button below to proceed to the file upload section.
+            Navigate to the upload screen or view your past analysis history.
           </Text>
+
+          {/* Go to Upload Button */}
           <Pressable
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => navigation.navigate("Upload")} // Navigate to your upload screen
+            onPress={() => router.push("/upload")} // Corrected to use router
           >
-            <Text style={styles.buttonText}>Go to Upload</Text>
+            <Text style={styles.buttonText}>Upload</Text>
+          </Pressable>
+
+          {/* --- ADDED "GO TO HISTORY" BUTTON HERE --- */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.secondaryButton, // A new style for a secondary look
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.push("/history")}
+          >
+            <Text style={styles.secondaryButtonText}>Go to History</Text>
           </Pressable>
         </View>
       </View>
@@ -147,6 +157,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: COLORS.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  // --- NEW STYLES FOR THE HISTORY BUTTON ---
+  secondaryButton: {
+    marginTop: 12, // Add space between buttons
+    backgroundColor: 'transparent',
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  secondaryButtonText: {
+    color: COLORS.primary,
     fontSize: 18,
     fontWeight: "bold",
   },

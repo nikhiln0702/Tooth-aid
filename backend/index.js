@@ -17,6 +17,6 @@ app.use("/api/analysis", uploadRoutes);
 
 
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`)
 })

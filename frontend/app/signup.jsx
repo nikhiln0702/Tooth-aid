@@ -13,6 +13,8 @@ import {
   ScrollView,
 } from "react-native";
 import axios from "axios";
+import { useRouter } from "expo-router";
+import { API_ENDPOINTS } from "../config/api";
 
 // Define colors for easy theming (ideally, this would be in a shared file)
 const COLORS = {
@@ -25,7 +27,8 @@ const COLORS = {
   success: "#4CAF50",
 };
 
-export default function SignupScreen({ navigation }) {
+export default function SignupScreen() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +46,7 @@ export default function SignupScreen({ navigation }) {
 
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/signup/", {
+      const res = await axios.post(API_ENDPOINTS.SIGNUP, {
         name,
         email,
         password,
@@ -54,7 +57,7 @@ export default function SignupScreen({ navigation }) {
           "Success",
           "Your account has been created successfully! Please log in."
         );
-        navigation.navigate("Login"); // Go to login after successful signup
+        router.push("/login"); // Go to login after successful signup
       }
     } catch (err) {
       console.error(err);
@@ -127,7 +130,7 @@ export default function SignupScreen({ navigation }) {
           {/* Login Link */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <Pressable onPress={() => navigation.navigate("Login")}>
+            <Pressable onPress={() => router.push("/login")}>
               <Text style={[styles.footerText, styles.linkText]}>Login</Text>
             </Pressable>
           </View>
