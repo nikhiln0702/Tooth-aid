@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 // Get the correct API base URL based on platform
 const getApiBaseUrl = () => {
   if (Platform.OS === 'android') {
-    // For Android device/emulator, use your computer's IP address
-    return 'http://localhost:5000';
+    // For Android physical device, use your computer's IP address
+    return 'http://192.168.70.182:5000';
   } else if (Platform.OS === 'ios') {
     // For iOS simulator, localhost works fine
     return 'http://localhost:5000';

@@ -13,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'; // For a consiste
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from 'react-native'; // To fix localhost issue
+import { API_ENDPOINTS } from "../config/api"; 
+
 
 // --- Define a consistent color palette ---
 const COLORS = {
@@ -34,7 +36,7 @@ export default function HistoryScreen() {
   const fetchHistory = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await axios.get('http://localhost:5000/api/analysis/history/', {
+      const res = await axios.get(API_ENDPOINTS.HISTORY, {
         headers: { Authorization: `Bearer ${token}` },
       });
       // Sort data by most recent first

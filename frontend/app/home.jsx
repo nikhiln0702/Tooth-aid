@@ -1,31 +1,34 @@
-// Homepage.js
-import React from "react";
+import React,{useState} from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   StatusBar,
+  Image,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons'; // For fallback icons
 
-// Define colors for easy theming (ideally, this would be in a shared file)
+// Define colors based on the new image
 const COLORS = {
-  primary: "#007BFF",
   white: "#FFFFFF",
-  lightGray: "#F0F0F0",
+  background: "#FFFFFF", // The main background is white
+  text: "#000000",
   gray: "#CCCCCC",
-  darkGray: "#888888",
-  danger: "#DC3545",
-  success: "#4CAF50",
-  background: "#F8F9FA",
+  iconGray: "#F0F0F0", // Background for settings icon
+  profileIconBg: "#C4C4C4", // Placeholder bg for the circle
+  activeTab: "#000000",
+  inactiveTab: "#BDBDBD",
 };
 
-export default function Homepage() {
-  const router = useRouter(); // use router instead of navigation
+export default function MainScreen() {
+  const router = useRouter(); 
 
+  // Logout logic from your Homepage.js
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("token");
@@ -35,51 +38,80 @@ export default function Homepage() {
     }
   };
 
+  // State to track the active tab
+  const [activeTab, setActiveTab] = useState("Home");
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
+      
+      {/* Top Header Section */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Home</Text>
-        <Pressable onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        <Text style={styles.headerTitle}>Money</Text>
+        {/* Settings/Profile icon on the right, triggers logout */}
+        <Pressable 
+          style={styles.profileIconContainer} 
+          onPress={handleLogout} // Attached logout to this button
+        >
+          You can replace this Ionicons component with your Image:
+            <Image 
+              source={require('../assets/images/settings.png')} 
+              style={styles.profileIcon} 
+            />
+         
         </Pressable>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.welcomeText}>Welcome to Your App!</Text>
-        <Text style={styles.subText}>
-          This is your main dashboard. From here, you can access all the features of the application.
-        </Text>
+      {/* Content Area - This is intentionally left blank to push tab bar down */}
+      <View style={styles.content} />
 
-        {/* Card for the main action */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Ready to Start?</Text>
-          <Text style={styles.cardText}>
-            Navigate to the upload screen or view your past analysis history.
-          </Text>
+      {/* Bottom Tab Bar */}
+      <View style={styles.tabBar}>
+        {/* Home Tab */}
+        <Pressable 
+          style={styles.tabItem} 
+          onPress={() => {
+            setActiveTab("Home");
+            // router.push("/home"); // Uncomment to navigate
+          }}
+        >
+          <Image 
+            source={require('../assets/images/home.png')} 
+            style={[
+              styles.tabIcon, 
+              { tintColor: activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab }
+            ]} 
+          />
+          {/* Fallback Icon */}
+          {/* <Ionicons 
+            name="home" 
+            size={28} 
+            color={activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab} 
+          /> */}
+        </Pressable>
 
-          {/* Go to Upload Button */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => router.push("/upload")} // Corrected to use router
-          >
-            <Text style={styles.buttonText}>Upload</Text>
-          </Pressable>
-
-          {/* --- ADDED "GO TO HISTORY" BUTTON HERE --- */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.secondaryButton, // A new style for a secondary look
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => router.push("/history")}
-          >
-            <Text style={styles.secondaryButtonText}>Go to History</Text>
-          </Pressable>
-        </View>
+        {/* Profile Tab */}
+        <Pressable 
+          style={styles.tabItem} 
+          onPress={() => {
+            setActiveTab("Profile");
+            // router.push("/profile"); // Uncomment to navigate
+          }}
+        >
+          <Image 
+            source={require('../assets/images/profile.png')} 
+            style={[
+              styles.tabIcon, 
+              { tintColor: activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab }
+            ]} 
+          />
+          {/* Fallback Icon */}
+          {/* <Ionicons 
+            name="person" 
+            size={28} 
+            color={activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab} 
+          /> */}
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -90,89 +122,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  // --- Header Styles ---
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray,
-    backgroundColor: COLORS.white,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text,
   },
-  logoutButtonText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: '500',
+  profileIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.iconGray,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  profileIcon: {
+    width: 20,
+    height: 20,
+  },
+  // --- Content ---
   content: {
-    flex: 1,
-    padding: 20,
+    flex: 1, // This pushes the tab bar to the bottom
   },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  subText: {
-    fontSize: 16,
-    color: COLORS.darkGray,
-    marginBottom: 30,
-  },
-  card: {
+  // --- Tab Bar Styles ---
+  tabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10, // Extra padding for home bar
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
   },
-  cardText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  // --- NEW STYLES FOR THE HISTORY BUTTON ---
-  secondaryButton: {
-    marginTop: 12, // Add space between buttons
-    backgroundColor: 'transparent',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  secondaryButtonText: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: "bold",
+  tabIcon: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
   },
 });

@@ -81,6 +81,13 @@ function LoginScreen() {
       }
     } catch (err) {
       console.error("Login error:", err);
+      console.error("Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config?.url
+      });
+      
       // Provide a more specific error message if possible
       if (err.message === "Network Error") {
         setError("Cannot connect to server. Check your internet connection.");
