@@ -4,13 +4,13 @@ import { Platform } from 'react-native';
 const getApiBaseUrl = () => {
   if (Platform.OS === 'android') {
     // For Android physical device, use your computer's IP address
-    return 'http://192.168.70.182:5000';
+    return 'http://192.168.158.182:5000';
   } else if (Platform.OS === 'ios') {
     // For iOS simulator, localhost works fine
     return 'http://localhost:5000';
   } else {
     // For web or physical device, use your computer's IP address
-    return 'http://192.168.70.182:5000';
+    return 'http://192.168.158.182:5000';
   }
 };
 
