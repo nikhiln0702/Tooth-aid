@@ -4,13 +4,13 @@ import { Platform } from 'react-native';
 const getApiBaseUrl = () => {
   if (Platform.OS === 'android') {
     // For Android physical device, use your computer's IP address
-    return 'http://192.168.158.182:5000';
+    return 'http://192.168.1.5:5000';
   } else if (Platform.OS === 'ios') {
     // For iOS simulator, localhost works fine
     return 'http://localhost:5000';
   } else {
     // For web or physical device, use your computer's IP address
-    return 'http://192.168.158.182:5000';
+    return 'http://192.168.1.5:5000';
   }
 };
 
@@ -22,6 +22,8 @@ console.log('API_BASE_URL:', API_BASE_URL);
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login`,
   SIGNUP: `${API_BASE_URL}/api/auth/signup`,
+  VERIFY_OTP: `${API_BASE_URL}/api/auth/verify-otp`,
   UPLOAD: `${API_BASE_URL}/api/analysis/upload`,
   HISTORY: `${API_BASE_URL}/api/analysis/history`,
+  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
 };

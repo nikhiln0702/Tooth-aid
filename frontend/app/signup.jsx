@@ -60,6 +60,10 @@ export default function SignupScreen() {
       return;
     }
 
+    const userData = {
+      email
+    };
+
     setIsLoading(true);
     try {
       const payload = {
@@ -75,9 +79,12 @@ export default function SignupScreen() {
       if (res.data?.message || res.status === 201) {
         Alert.alert(
           "Success",
-          "Your account has been created successfully! Please log in."
+          "Your account has been created successfully! Please verify your email."
         );
-        router.push("/login");
+        router.push({
+          pathname: "/otp-verification",
+          params: userData, 
+        });
       }
     } catch (err) {
       console.error("Signup error:", err);

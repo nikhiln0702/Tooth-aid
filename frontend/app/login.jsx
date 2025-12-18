@@ -87,14 +87,27 @@ function LoginScreen() {
         status: err.response?.status,
         config: err.config?.url
       });
-      
+
+      // Handle specific backend response for unverified users
+      const backendMsg = err.response?.data?.msg;
+      const requiresVerification = err.response?.data?.requiresVerification;
+
+      if (requiresVerification && backendMsg === "Email not verified") {
+        // Navigate to OTP verification screen, passing the email
+        router.push({
+          pathname: "/otp-verification",
+          params: { email },
+        });
+        return;
+      }
+
       // Provide a more specific error message if possible
       if (err.message === "Network Error") {
         setError("Cannot connect to server. Check your internet connection.");
       } else {
         setError(
           err.response?.data?.message ||
-            err.response?.data?.msg ||
+            backendMsg ||
             "Invalid credentials or server error."
         );
       }
