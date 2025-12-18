@@ -22,7 +22,7 @@ console.log('API_BASE_URL:', API_BASE_URL);
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login`,
   SIGNUP: `${API_BASE_URL}/api/auth/signup`,
-  VERIFY_OTP: `${API_BASE_URL}/api/auth/verify-otp`,
+  VERIFY_MAIL: `${API_BASE_URL}/api/auth/verify-mail`,
   UPLOAD: `${API_BASE_URL}/api/analysis/upload`,
   HISTORY: `${API_BASE_URL}/api/analysis/history`,
   LOGOUT: `${API_BASE_URL}/api/auth/logout`,

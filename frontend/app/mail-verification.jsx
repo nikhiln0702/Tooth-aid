@@ -72,7 +72,7 @@ export default function OtpVerificationScreen() {
       };
 
       console.log("Verifying with:", payload);
-      const res = await axios.post(API_ENDPOINTS.VERIFY_OTP, payload); 
+      const res = await axios.post(API_ENDPOINTS.VERIFY_MAIL, payload); 
 
       if (res.status === 200 || res.status === 201) {
         Alert.alert("Success", "Account verified and created!");

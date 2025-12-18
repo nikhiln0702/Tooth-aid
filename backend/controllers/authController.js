@@ -57,7 +57,7 @@ export const signup = async (req, res) => {
   }
 };
 
-export const verifyOTP = async (req, res) => {
+export const verifyMail = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -132,3 +132,67 @@ export const logout = async (req, res) => {
   }
 }
 
+export const resendOTP = async (req, res) => {
+  try{
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+    const otp = await sendOTPEmail(email, "Resend OTP for ToothAid", "Your OTP is {otp}. It is valid for 10 minutes.");
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+    res.status(200).json({ message: "OTP resent successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+    const otp = await sendOTPEmail(email, "Password Reset OTP for ToothAid", "Your OTP is {otp}. It is valid for 10 minutes.");
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+    res.status(200).json({ message: "Password reset OTP sent successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {  
+  try {
+    const { email, newPassword } = req.body;  
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).json({ message: "Password reset successfully" }); 
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+    if (user.otp !== otp)
+      return res.status(400).json({ msg: "Invalid OTP" });
+    if (user.otpExpires < new Date())
+      return res.status(400).json({ msg: "OTP expired" });
+    
+
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+    res.status(200).json({ message: "OTP verified successfully!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } 
+};
