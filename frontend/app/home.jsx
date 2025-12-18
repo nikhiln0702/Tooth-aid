@@ -7,12 +7,15 @@ import {
   StatusBar,
   Image,
   Platform,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from "jwt-decode"; // Import the decoder
 import { Ionicons } from '@expo/vector-icons'; // For fallback icons
+import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 
 // Define colors based on the new image
 const COLORS = {
@@ -32,11 +35,21 @@ export default function MainScreen() {
 
   // Logout logic from your Homepage.js
   const handleLogout = async () => {
+    
     try {
+      const token = await AsyncStorage.getItem("token");
+      
+      const res = await axios.post(API_ENDPOINTS.LOGOUT,{},{
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
       await AsyncStorage.removeItem("token");
-      router.replace("/login"); // navigate to login
+    
+      router.replace({
+        pathname: "/login",
+      }); // navigate to login
     } catch (error) {
-      console.error("Error clearing token:", error);
+      console.error("Error logging out:", error);
     }
   };
   // State to hold the user's name
@@ -79,12 +92,13 @@ export default function MainScreen() {
         {/* Settings/Profile icon on the right, triggers logout */}
         <Pressable 
           style={styles.profileIconContainer} 
-          onPress={handleLogout} // Attached logout to this button
+          onPress={handleLogout}
         >
           {/* Settings icon; tap to logout */}
             <Image 
               source={require('../assets/images/settings.png')} 
-              style={styles.profileIcon} 
+              style={styles.profileIcon}
+              pointerEvents="none"
             />
          
         </Pressable>

@@ -125,6 +125,7 @@ export const logout = async (req, res) => {
     if (!user) return res.status(404).json({ msg: "User not found" });
     user.token = undefined;
     await user.save();
+    console.log("Logged out successfully");
     res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
