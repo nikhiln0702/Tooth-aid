@@ -87,6 +87,7 @@ function LoginScreen() {
         status: err.response?.status,
         config: err.config?.url
       });
+      Alert.alert("Login Failed", err.response?.data?.msg || "An error occurred during login.");
 
       // Handle specific backend response for unverified users
       const backendMsg = err.response?.data?.msg;
@@ -187,7 +188,7 @@ function LoginScreen() {
             <Pressable
               style={styles.linkButton}
               onPress={() => {
-                /* Handle forgot password navigation */
+                router.push({ pathname: "/forgotPassword" });
               }}
             >
               <Text style={styles.linkButtonText}>

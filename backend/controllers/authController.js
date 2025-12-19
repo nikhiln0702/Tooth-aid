@@ -27,6 +27,7 @@ const sendOTPEmail = async (email, subject, text) => {
   return otp;
 };
 
+// Signup controller
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -57,6 +58,7 @@ export const signup = async (req, res) => {
   }
 };
 
+// Verify Mail controller
 export const verifyMail = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -84,6 +86,7 @@ export const verifyMail = async (req, res) => {
   }
 };
 
+// Login controller
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -119,6 +122,7 @@ export const login = async (req, res) => {
   }
 };
 
+// Logout controller
 export const logout = async (req, res) => {
   try{
     const user = await User.findById(req.user.id);
@@ -132,6 +136,7 @@ export const logout = async (req, res) => {
   }
 }
 
+// Resend OTP controller
 export const resendOTP = async (req, res) => {
   try{
     const { email } = req.body;
@@ -147,6 +152,7 @@ export const resendOTP = async (req, res) => {
   }
 }
 
+// Forgot Password controller
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -162,6 +168,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+// Reset Password controller
 export const resetPassword = async (req, res) => {  
   try {
     const { email, newPassword } = req.body;  
@@ -177,6 +184,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// Verify OTP controller
 export const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;

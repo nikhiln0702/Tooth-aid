@@ -34,7 +34,7 @@ const COLORS = {
   lightPurpleBg: "#F3E5F5", // Optional background accent if needed
 };
 
-export default function OtpVerificationScreen() {
+export default function MailVerificationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { email } = params;

@@ -82,7 +82,7 @@ export default function SignupScreen() {
           "Your account has been created successfully! Please verify your email."
         );
         router.push({
-          pathname: "/otp-verification",
+          pathname: "/mailVerification",
           params: userData, 
         });
       }
