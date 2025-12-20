@@ -18,7 +18,6 @@ import { useRouter } from "expo-router";
 import { API_ENDPOINTS } from "../config/api"; // Your real API endpoint
 import Checkbox from 'expo-checkbox'; // Import Checkbox
 import { Ionicons } from '@expo/vector-icons'; // For the 'eye' icon
-
 // Mocking API_ENDPOINTS for the code to be runnable
 
 
@@ -189,6 +188,20 @@ export default function SignupScreen() {
 
           {/* --- Bottom Section --- */}
           <View style={styles.bottomSection}>
+            {/* Continue with Google */}
+            <Pressable
+             style={({ pressed }) => [
+               styles.button,
+               styles.socialButton,
+               pressed && styles.buttonPressed,
+             ]}
+           >
+             <Image
+               source={require("../assets/images/google_logo.png")} // Adjust this path to your image
+               style={[styles.socialIcon, { width: 20, height: 20 }]} // Set width/height for the image
+             />
+             <Text style={styles.socialButtonText}>Continue with Google</Text>
+           </Pressable>
             {/* Footer Legal Text - Styled like LoginScreen links */}
             <Text style={[styles.linkButtonText, styles.footerText]}>
               By clicking Sign Up, you agree to our
@@ -306,6 +319,20 @@ const styles = StyleSheet.create({
   signupButton: {
     backgroundColor: COLORS.success, // Use Green for Signup
     marginTop: 10,
+  },
+  socialButton: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+  },
+  socialButtonText: {
+    color: COLORS.trueBlack,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  socialIcon: {
+    position: "absolute",
+    left: 24,
   },
   buttonText: {
     color: COLORS.white,

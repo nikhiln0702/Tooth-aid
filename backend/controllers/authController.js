@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import User from "../models/User.js";
 import validator from 'validator';
 import nodemailer from "nodemailer";
+import { OAuth2Client } from 'google-auth-library';
+
+const client = new OAuth2Client(process.env.WEB_CLIENT_ID);
 
 // Helper function to generate OTP and send email
 const sendOTPEmail = async (email, subject, text) => {
@@ -81,6 +84,48 @@ export const verifyMail = async (req, res) => {
     await user.save();
 
     res.status(200).json({ message: "Email verified successfully!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Google Login controller
+export const googleLogin = async (req, res) => {
+  const { token } = req.body;
+  try {
+    // 1. Verify the token with Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.WEB_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name , picture, sub} = payload;
+    console.log("Google Payload:", payload);
+    // 2. Check if user exists
+    let user = await User.findOne({ email });
+    if (!user) {
+      // 3. If not, register them automatically
+      user = new User({
+        name,
+        email,
+        password: "Google", // No password for Google users
+        googleId: sub,
+        profileImage: picture,
+        isVerified: true // Google emails are already verified
+      });
+      await user.save();
+    }
+    // 4. Generate JWT
+    const jwtToken = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    res.status(200).json({
+      message: "Google Login Success",
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

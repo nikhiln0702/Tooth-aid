@@ -31,3 +31,6 @@ export const API_ENDPOINTS = {
   HISTORY: `${API_BASE_URL}/api/analysis/history`,
   LOGOUT: `${API_BASE_URL}/api/auth/logout`,
 };
+//android :654250670060-lj8ehlprjagjq8bjusgfcgcihm8rts9b.apps.googleusercontent.com
+//ios: 654250670060-kmp0u9b4c27c9o5gj2ahb8f1gjg2im2b.apps.googleusercontent.com
+//web: 654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com
