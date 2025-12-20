@@ -39,6 +39,7 @@ export default function SetNewPasswordScreen() {
 
   const handleSetNewPassword = async () => {
     // 1. Basic Validation
+    console.log("Email for password reset:", email);
     if (!password || !confirmPassword) {
       Alert.alert("Error", "Please fill in both fields.");
       return;
@@ -64,6 +65,7 @@ export default function SetNewPasswordScreen() {
       );
     } catch (error) {
       Alert.alert("Error", "Failed to reset password. Please try again.");
+      console.error("Reset Password Error:", error.response ? error.response.data : error.message);
     } finally {
       setIsLoading(false);
     }

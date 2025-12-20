@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen() {
       Alert.alert(
         "Check your email",
         "We have sent a OTP to your email.",
-        [{ text: "OK", onPress: () => router.push({ pathname: "/otpVerification", params: { email } }) }]
+        [{ text: "OK", onPress: () => router.push(`/otpVerification?email=${encodeURIComponent(email)}`) }]
       );
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");

@@ -73,10 +73,11 @@ export default function OtpVerificationScreen() {
 
       console.log("Verifying with:", payload);
       const res = await axios.post(API_ENDPOINTS.VERIFY_OTP, payload); 
-
+      console.log(email, otp);
       if (res.status === 200 || res.status === 201) {
         Alert.alert("Success", "OTP verified");
-        router.replace("/resetPassword", { email }); // Navigate to reset password
+        // Pass email as a query parameter so useLocalSearchParams receives it
+        router.replace(`/resetPassword?email=${encodeURIComponent(email)}`);
       }
     } catch (err) {
       console.error(err);

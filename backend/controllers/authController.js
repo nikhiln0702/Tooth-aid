@@ -7,7 +7,7 @@ import nodemailer from "nodemailer";
 // Helper function to generate OTP and send email
 const sendOTPEmail = async (email, subject, text) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -15,14 +15,14 @@ const sendOTPEmail = async (email, subject, text) => {
       pass: process.env.EMAIL_PASS,
     },
   });
-  
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
     subject: subject,
     text: text.replace('{otp}', otp), // Replace {otp} placeholder with actual OTP
   };
-  
+
   await transporter.sendMail(mailOptions);
   return otp;
 };
@@ -49,7 +49,7 @@ export const signup = async (req, res) => {
       "Your OTP is {otp}. It is valid for 10 minutes."
     );
 
-    user = new User({ name, email, password: hashedPassword , otp, otpExpires: Date.now() + 10 * 60 * 1000 }); // OTP valid for 10 mins
+    user = new User({ name, email, password: hashedPassword, otp, otpExpires: Date.now() + 10 * 60 * 1000 }); // OTP valid for 10 mins
     await user.save();
 
     res.status(201).json({ message: "OTP sent successfully" });
@@ -114,7 +114,7 @@ export const login = async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ id: user._id,name:user.name }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
     res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
@@ -124,7 +124,7 @@ export const login = async (req, res) => {
 
 // Logout controller
 export const logout = async (req, res) => {
-  try{
+  try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: "User not found" });
     user.token = undefined;
@@ -138,7 +138,7 @@ export const logout = async (req, res) => {
 
 // Resend OTP controller
 export const resendOTP = async (req, res) => {
-  try{
+  try {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
@@ -169,16 +169,32 @@ export const forgotPassword = async (req, res) => {
 };
 
 // Reset Password controller
-export const resetPassword = async (req, res) => {  
+export const resetPassword = async (req, res) => {
   try {
-    const { email, newPassword } = req.body;  
+    const { email, newPassword } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     user.password = hashedPassword;
     await user.save();
-    res.status(200).json({ message: "Password reset successfully" }); 
+    const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Password Reset Successful - ToothAid",
+    text: "Your password has been reset successfully.",
+  };
+  
+  await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Password reset successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -194,7 +210,7 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ msg: "Invalid OTP" });
     if (user.otpExpires < new Date())
       return res.status(400).json({ msg: "OTP expired" });
-    
+
 
     user.otp = undefined;
     user.otpExpires = undefined;
@@ -202,5 +218,5 @@ export const verifyOTP = async (req, res) => {
     res.status(200).json({ message: "OTP verified successfully!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  } 
+  }
 };
