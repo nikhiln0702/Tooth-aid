@@ -46,7 +46,7 @@ export default function OtpVerificationScreen() {
   // Logic State
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [timer, setTimer] = useState(59); // 59 seconds timer
+  const [timer, setTimer] = useState(120); // 120 seconds timer
 
   // Countdown Timer Logic
   useEffect(() => {

@@ -46,7 +46,7 @@ export default function MailVerificationScreen() {
   // Logic State
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [timer, setTimer] = useState(59); // 59 seconds timer
+  const [timer, setTimer] = useState(120); // 59 seconds timer
 
   // Countdown Timer Logic
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function MailVerificationScreen() {
           {/* Timer and Resend Row */}
           <View style={styles.timerRow}>
             <Text style={styles.timerText}>Didn't get it? </Text>
-            <Pressable disabled={timer > 0} onPress={() => setTimer(59)}>
+            <Pressable disabled={timer > 0} onPress={() => setTimer(120)}>
               <Text style={[styles.resendText, timer > 0 && {color: COLORS.grayText}]}>
                 Resend code
               </Text>

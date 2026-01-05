@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "frontend",
-    "slug": "frontend",
+    "slug": "toothaid-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -28,8 +28,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "updates": {
-  "enabled": false
-},
+      "enabled": false
+    },
     "plugins": [
       "expo-router",
       [
@@ -43,7 +43,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

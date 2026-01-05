@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,9 +16,20 @@ import {
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { API_ENDPOINTS } from "../config/api"; // Your real API endpoint
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import Checkbox from 'expo-checkbox'; // Import Checkbox
 import { Ionicons } from '@expo/vector-icons'; // For the 'eye' icon
-// Mocking API_ENDPOINTS for the code to be runnable
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 
 // --- STYLESHEET ---
@@ -33,6 +44,8 @@ const COLORS = {
   danger: "#DC3545",
   success: "#0800ffff", // From your original Signup logic
 };
+WebBrowser.maybeCompleteAuthSession();
+
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -48,6 +61,48 @@ export default function SignupScreen() {
   // State from your logic
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  },{
+  // This forces the Redirect URI to be https://auth.expo.io/...
+  useProxy: true, 
+  redirectUri: AuthSession.makeRedirectUri({
+    useProxy: true,
+  }),
+});
+  console.log("YOUR REDIRECT URI:", AuthSession.makeRedirectUri({ useProxy: true }));
+
+  // This handles the response whenever it changes
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      if (id_token) {
+        syncWithBackend(id_token);
+      }
+    }
+  }, [response]);
+
+  const syncWithBackend = async (token) => {
+    setIsLoading(true);
+    try {
+      const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, { token });
+      if (res.status === 200 || res.status === 201) {
+        router.replace("/home");
+      }
+    } catch (error) {
+      setError("Could not verify Google account with server.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // The button triggers this
+  const handleGoogleSignup = () => {
+    promptAsync();
+  };
 
   const handleSignup = async () => {
     setError("");
@@ -195,6 +250,8 @@ export default function SignupScreen() {
                styles.socialButton,
                pressed && styles.buttonPressed,
              ]}
+             onPress={handleGoogleSignup} // Now points to the top-level trigger
+             disabled={!request || isLoading}
            >
              <Image
                source={require("../assets/images/google_logo.png")} // Adjust this path to your image

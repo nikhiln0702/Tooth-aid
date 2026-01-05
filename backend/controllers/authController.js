@@ -109,9 +109,7 @@ export const googleLogin = async (req, res) => {
         name,
         email,
         password: "Google", // No password for Google users
-        googleId: sub,
-        profileImage: picture,
-        isVerified: true // Google emails are already verified
+        verified: true // Google emails are already verified
       });
       await user.save();
     }

@@ -4,13 +4,13 @@ import { Platform } from 'react-native';
 const getApiBaseUrl = () => {
   if (Platform.OS === 'android') {
     // For Android physical device, use your computer's IP address
-    return 'http://192.168.1.5:5000';
+    return 'http://192.168.143.182:5000';
   } else if (Platform.OS === 'ios') {
     // For iOS simulator, localhost works fine
     return 'http://localhost:5000';
   } else {
     // For web or physical device, use your computer's IP address
-    return 'http://192.168.1.5:5000';
+    return 'http://192.168.143.182';
   }
 };
 
@@ -21,6 +21,7 @@ console.log('API_BASE_URL:', API_BASE_URL);
 
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login`,
+  GOOGLE_LOGIN: `${API_BASE_URL}/api/auth/google-login`,
   SIGNUP: `${API_BASE_URL}/api/auth/signup`,
   VERIFY_MAIL: `${API_BASE_URL}/api/auth/verify-mail`,
   FORGOT_PASSWORD: `${API_BASE_URL}/api/auth/forgot-password`,
