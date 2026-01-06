@@ -15,116 +15,127 @@ import {
 } from "react-native";
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { API_ENDPOINTS } from "../config/api"; // Your real API endpoint
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import { API_ENDPOINTS } from "../config/api"; 
 import {
   GoogleSignin,
-  GoogleSigninButton,
   statusCodes,
+  isSuccessResponse,
+  isErrorWithCode
 } from '@react-native-google-signin/google-signin';
-import Checkbox from 'expo-checkbox'; // Import Checkbox
-import { Ionicons } from '@expo/vector-icons'; // For the 'eye' icon
+import { Ionicons } from '@expo/vector-icons'; 
 
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
-
-
-// --- STYLESHEET ---
-// This COLORS palette is now consistent with your LoginScreen.js
+// --- STYLESHEET COLORS ---
 const COLORS = {
   white: "#FFFFFF",
   trueBlack: "#000000",
   grayText: "#8A8A8E",
   placeholder: "#C7C7CD",
   inputBorder: "#EAEAEA",
-  blue: "#005effff", // From your Login screen
+  blue: "#005effff", 
   danger: "#DC3545",
-  success: "#0800ffff", // From your original Signup logic
+  success: "#0800ffff", 
 };
-WebBrowser.maybeCompleteAuthSession();
-
 
 export default function SignupScreen() {
   const router = useRouter();
-  // Renamed 'name' to 'username' to match the UI
+  
+  // Input State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
-  // State for UI elements
-  const [specialOffers, setSpecialOffers] = useState(true);
+  // UI State
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  
-  // State from your logic
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  },{
-  // This forces the Redirect URI to be https://auth.expo.io/...
-  useProxy: true, 
-  redirectUri: AuthSession.makeRedirectUri({
-    useProxy: true,
-  }),
-});
-  console.log("YOUR REDIRECT URI:", AuthSession.makeRedirectUri({ useProxy: true }));
-
-  // This handles the response whenever it changes
+  // 1. Configure Google Sign-In on Mount
   useEffect(() => {
-    if (response?.type === "success") {
-      const { id_token } = response.params;
-      if (id_token) {
-        syncWithBackend(id_token);
-      }
-    }
-  }, [response]);
+    GoogleSignin.configure({
+      webClientId: "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com", 
+      offlineAccess: true, 
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
 
-  const syncWithBackend = async (token) => {
+  // 2. The Google Logic
+  const handleGoogleSignup = async () => {
+    setError("");
     setIsLoading(true);
+
     try {
-      const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, { token });
-      if (res.status === 200 || res.status === 201) {
-        router.replace("/home");
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+
+      if (isSuccessResponse(response)) {
+        // Get the token and user details
+        const { idToken, user } = response.data;
+        console.log("Google Sign-In Success:", user.email);
+
+        // 3. Send to YOUR Backend
+        await handleBackendGoogleSync(idToken, user);
+      } else {
+        setIsLoading(false);
       }
     } catch (error) {
-      setError("Could not verify Google account with server.");
+      setIsLoading(false);
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log("User cancelled the login flow");
+            break;
+          case statusCodes.IN_PROGRESS:
+            Alert.alert("Error", "Sign in is already in progress");
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert("Error", "Google Play Services not available");
+            break;
+          default:
+            console.error(error);
+            Alert.alert("Error", "Google Sign-In failed");
+        }
+      } else {
+        console.error(error);
+        Alert.alert("Error", "An unexpected error occurred");
+      }
+    }
+  };
+
+  // 4. Backend Sync Function
+  const handleBackendGoogleSync = async (idToken, googleUser) => {
+    try {
+      const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, {
+        token: idToken,
+        // You can optionally send name/email if your backend needs it explicitly,
+        // but usually the token is enough.
+      });
+
+      if (res.status === 200 || res.status === 201) {
+        Alert.alert("Success", `Welcome, ${googleUser.name}!`);
+        // Navigate to Home directly since Google is already verified
+        router.replace("/(tabs)/home");
+      }
+    } catch (err) {
+      console.error("Backend Error:", err);
+      setError("Failed to create account with Google.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // The button triggers this
-  const handleGoogleSignup = () => {
-    promptAsync();
-  };
-
+  // Standard Email/Pass Signup
   const handleSignup = async () => {
     setError("");
     if (isLoading) return;
 
-    // Updated validation to use 'username'
     if (!name || !email || !password) {
       setError("Please fill in all fields.");
       return;
     }
 
-
     setIsLoading(true);
     try {
-      const payload = {
-        name,
-        email,
-        password,
-      };
-      console.log("Attempting signup with URL:", API_ENDPOINTS.SIGNUP);
-      console.log("Signup payload:", payload);
-      
+      const payload = { name, email, password };
       const res = await axios.post(API_ENDPOINTS.SIGNUP, payload);
 
       if (res.data?.message || res.status === 201) {
@@ -136,19 +147,12 @@ export default function SignupScreen() {
       }
     } catch (err) {
       console.error("Signup error:", err);
-      console.error("Error details:", {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        config: err.config?.url
-      });
-      setError(err.response?.data?.msg || err.response?.data?.error || "An unexpected error occurred.");
+      setError(err.response?.data?.msg || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Check if form is valid to enable the button
   const isFormValid = name && email && password;
 
   return (
@@ -164,8 +168,7 @@ export default function SignupScreen() {
           {/* --- Top Section --- */}
           <View style={styles.topSection}>
             
-
-            {/* Email Input - Styled like LoginScreen */}
+            {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
@@ -176,11 +179,10 @@ export default function SignupScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                textContentType="emailAddress"
               />
             </View>
             
-            {/* Password Input - Styled like LoginScreen */}
+            {/* Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.passwordContainer}>
@@ -191,7 +193,6 @@ export default function SignupScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!isPasswordVisible}
-                  textContentType="password"
                 />
                 <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)} style={styles.eyeIcon}>
                   <Ionicons 
@@ -203,7 +204,7 @@ export default function SignupScreen() {
               </View>
             </View>
 
-            {/* Name Input - Styled like LoginScreen */}
+            {/* Name Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Name</Text>
               <TextInput
@@ -216,15 +217,13 @@ export default function SignupScreen() {
               />
             </View>
 
-
-            {/* Error Message Display */}
+            {/* Error Message */}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            {/* Signup Button - Styled like LoginScreen button */}
+            {/* Standard Signup Button */}
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                // Use new signupButton style
                 (!isFormValid || isLoading) ? styles.buttonDisabled : styles.signupButton,
                 pressed && styles.buttonPressed,
               ]}
@@ -234,39 +233,39 @@ export default function SignupScreen() {
               {isLoading ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.buttonText}>
-                  Sign Up
-                </Text>
+                <Text style={styles.buttonText}>Sign Up</Text>
               )}
             </Pressable>
           </View>
 
           {/* --- Bottom Section --- */}
           <View style={styles.bottomSection}>
-            {/* Continue with Google */}
+            {/* Google Signup Button */}
             <Pressable
              style={({ pressed }) => [
                styles.button,
                styles.socialButton,
                pressed && styles.buttonPressed,
+               isLoading && { opacity: 0.5 }
              ]}
-             onPress={handleGoogleSignup} // Now points to the top-level trigger
-             disabled={!request || isLoading}
-           >
-             <Image
-               source={require("../assets/images/google_logo.png")} // Adjust this path to your image
-               style={[styles.socialIcon, { width: 20, height: 20 }]} // Set width/height for the image
-             />
-             <Text style={styles.socialButtonText}>Continue with Google</Text>
-           </Pressable>
-            {/* Footer Legal Text - Styled like LoginScreen links */}
+             onPress={handleGoogleSignup}
+             disabled={isLoading}
+            >
+              <Image
+                source={require("../assets/images/google_logo.png")}
+                style={[styles.socialIcon, { width: 20, height: 20 }]}
+              />
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            </Pressable>
+
+            {/* Footer Legal Text */}
             <Text style={[styles.linkButtonText, styles.footerText]}>
               By clicking Sign Up, you agree to our
               <Text style={styles.linkTextBold}> User Agreement</Text> and
               <Text style={styles.linkTextBold}> Privacy Policy</Text>.
             </Text>
 
-            {/* Login Link - Styled like LoginScreen links */}
+            {/* Login Link */}
             <Pressable
               style={styles.linkButton}
               onPress={() => router.push("/login")}
@@ -283,43 +282,26 @@ export default function SignupScreen() {
   );
 }
 
-// --- STYLESHEET ---
-// This StyleSheet is now consistent with your LoginScreen.js
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white, // Match Login
+    backgroundColor: COLORS.white,
   },
   safeArea: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "space-between", // Match Login
+    justifyContent: "space-between", 
     paddingHorizontal: 24,
   },
   topSection: {
     paddingTop: Platform.OS === "android" ? 40 : 20,
-    marginTop: 120,
+    marginTop: 80, // Slightly reduced to fit screen better
   },
   bottomSection: {
     paddingBottom: 20,
   },
-  headerImage: {
-    width: "100%",
-    height: 150,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 30, // Less margin than login, more fields
-    color: COLORS.trueBlack,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  // --- Input Styles (from Login) ---
   inputGroup: {
     marginBottom: 24,
   },
@@ -335,7 +317,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.inputBorder,
     paddingVertical: 10,
   },
-  // --- Special Password Input Styles ---
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -351,30 +332,16 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 10,
   },
-  // --- Checkbox Styles ---
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  checkbox: {
-    marginRight: 10,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: COLORS.grayText, // Match link text color
-  },
-  // --- Button Styles (from Login) ---
   button: {
-    borderRadius: 30, // Match Login
-    paddingVertical: 16, // Match Login
+    borderRadius: 30,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     marginBottom: 16,
   },
   signupButton: {
-    backgroundColor: COLORS.success, // Use Green for Signup
+    backgroundColor: COLORS.success,
     marginTop: 10,
   },
   socialButton: {
@@ -400,9 +367,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   buttonDisabled: {
-    backgroundColor: COLORS.blue, // Lighter shade of success
+    backgroundColor: COLORS.blue,
   },
-  // --- Link Styles (from Login) ---
   linkButton: {
     alignItems: "center",
     paddingVertical: 8,
@@ -416,12 +382,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.trueBlack,
   },
-  // --- Footer Legal Text ---
   footerText: {
     textAlign: "center",
     lineHeight: 20,
+    marginBottom: 10,
   },
-  // --- Error Text (from Login) ---
   errorText: {
     color: COLORS.danger,
     textAlign: "center",
