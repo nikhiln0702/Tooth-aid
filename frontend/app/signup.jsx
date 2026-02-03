@@ -54,7 +54,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 const [request, response, promptAsync] = Google.useAuthRequest({
   androidClientId:
-    "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com",
+    "654250670060-lj8ehlprjagjq8bjusgfcgcihm8rts9b.apps.googleusercontent.com",
   webClientId:
     "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com",
 });
