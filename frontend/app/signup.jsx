@@ -16,12 +16,8 @@ import {
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { API_ENDPOINTS } from "../config/api"; 
-import {
-  GoogleSignin,
-  statusCodes,
-  isSuccessResponse,
-  isErrorWithCode
-} from '@react-native-google-signin/google-signin';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons'; 
 
 // --- STYLESHEET COLORS ---
@@ -49,79 +45,73 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 1. Configure Google Sign-In on Mount
-  useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com", 
-      offlineAccess: true, 
-      forceCodeForRefreshToken: true,
+
+WebBrowser.maybeCompleteAuthSession();
+
+/* --------------------------------------------------
+   1. Configure Google Auth (Expo)
+-------------------------------------------------- */
+
+const [request, response, promptAsync] = Google.useAuthRequest({
+  androidClientId:
+    "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com",
+  webClientId:
+    "654250670060-30n1hf0q6hcsjicalsqqrtirjqmlomgr.apps.googleusercontent.com",
+});
+
+/* --------------------------------------------------
+   2. Handle Google Response
+-------------------------------------------------- */
+
+useEffect(() => {
+  if (response?.type === "success") {
+    const { authentication } = response;
+
+    if (authentication?.idToken) {
+      handleBackendGoogleSync(authentication.idToken);
+    }
+  }
+}, [response]);
+
+/* --------------------------------------------------
+   3. Trigger Google Signup
+-------------------------------------------------- */
+
+const handleGoogleSignup = async () => {
+  setError("");
+  setIsLoading(true);
+
+  try {
+    await promptAsync();
+  } catch (err) {
+    console.error(err);
+    Alert.alert("Error", "Google Sign-In failed");
+    setIsLoading(false);
+  }
+};
+
+/* --------------------------------------------------
+   4. Backend Sync Function (UNCHANGED LOGIC)
+-------------------------------------------------- */
+
+const handleBackendGoogleSync = async (idToken) => {
+  try {
+    const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, {
+      token: idToken,
     });
-  }, []);
 
-  // 2. The Google Logic
-  const handleGoogleSignup = async () => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-
-      if (isSuccessResponse(response)) {
-        // Get the token and user details
-        const { idToken, user } = response.data;
-        console.log("Google Sign-In Success:", user.email);
-
-        // 3. Send to YOUR Backend
-        await handleBackendGoogleSync(idToken, user);
-      } else {
-        setIsLoading(false);
-      }
-    } catch (error) {
-      setIsLoading(false);
-      if (isErrorWithCode(error)) {
-        switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
-            console.log("User cancelled the login flow");
-            break;
-          case statusCodes.IN_PROGRESS:
-            Alert.alert("Error", "Sign in is already in progress");
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            Alert.alert("Error", "Google Play Services not available");
-            break;
-          default:
-            console.error(error);
-            Alert.alert("Error", "Google Sign-In failed");
-        }
-      } else {
-        console.error(error);
-        Alert.alert("Error", "An unexpected error occurred");
-      }
+    if (res.status === 200 || res.status === 201) {
+      Alert.alert("Success", "Google account linked successfully!");
+      router.replace("/(tabs)/home");
     }
-  };
+  } catch (err) {
+    console.error("Backend Error:", err);
+    setError("Failed to create account with Google.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  // 4. Backend Sync Function
-  const handleBackendGoogleSync = async (idToken, googleUser) => {
-    try {
-      const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, {
-        token: idToken,
-        // You can optionally send name/email if your backend needs it explicitly,
-        // but usually the token is enough.
-      });
-
-      if (res.status === 200 || res.status === 201) {
-        Alert.alert("Success", `Welcome, ${googleUser.name}!`);
-        // Navigate to Home directly since Google is already verified
-        router.replace("/(tabs)/home");
-      }
-    } catch (err) {
-      console.error("Backend Error:", err);
-      setError("Failed to create account with Google.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Standard Email/Pass Signup
   const handleSignup = async () => {

@@ -1,4 +1,4 @@
-import React,{useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,129 +8,150 @@ import {
   Image,
   Platform,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { jwtDecode } from "jwt-decode"; // Import the decoder
-import { Ionicons } from '@expo/vector-icons'; // For fallback icons
+import { jwtDecode } from "jwt-decode";
+import { Ionicons } from '@expo/vector-icons';
 import axios from "axios";
 import { API_ENDPOINTS } from "../config/api";
 
-// Define colors based on the new image
+// --- UPDATED COLORS ---
 const COLORS = {
   white: "#FFFFFF",
-  background: "#FFFFFF", // The main background is white
-  text: "#000000",
-  blue: "#005effff",
-  gray: "#CCCCCC",
-  iconGray: "#F0F0F0", // Background for settings icon
-  profileIconBg: "#C4C4C4", // Placeholder bg for the circle
+  background: "#F8F9FB", // Soft off-white for depth
+  text: "#1A1A1A",
+  textSecondary: "#7A7A7A",
+  blue: "#005eff",
+  gray: "#EAEAEA",
+  iconGray: "#F2F2F2", 
   activeTab: "#000000",
-  inactiveTab: "#BDBDBD",
+  inactiveTab: "#A0A0A0",
+  success: "#4CAF50",
+  warning: "#FF9500",
 };
 
 export default function MainScreen() {
   const router = useRouter(); 
 
-  // Logout logic from your Homepage.js
+  // --- LOGIC (UNTOUCHED) ---
   const handleLogout = async () => {
-    
     try {
       const token = await AsyncStorage.getItem("token");
-      
-      const res = await axios.post(API_ENDPOINTS.LOGOUT,{},{
+      const res = await axios.post(API_ENDPOINTS.LOGOUT, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
       await AsyncStorage.removeItem("token");
-    
-      router.replace({
-        pathname: "/login",
-      }); // navigate to login
+      router.replace({ pathname: "/login" });
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
-  // State to hold the user's name
+
   const [userName, setUserName] = useState(""); 
 
-  // --- NEW EFFECT ---
-  // This runs once when the component loads
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = await AsyncStorage.getItem("token");
         if (token) {
-          // Decode the token
           const decodedToken = jwtDecode(token);
-          
-          // --- IMPORTANT ---
-          // 'name' is a guess. Your token might use 'username', 'firstName', etc.
-          console.log(decodedToken); // <-- UNCOMMENT THIS to see what's in your token
-          setUserName(decodedToken.name || "User"); // Set the name from the token
+          console.log(decodedToken); 
+          setUserName(decodedToken.name || "User"); 
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error);
-        // Handle error, maybe log out
       }
     };
-
     fetchUserData();
-  }, []); // The empty array [] means this effect runs only once
+  }, []);
 
-  // State to track the active tab
   const [activeTab, setActiveTab] = useState("Home");
+
+  // --- UI COMPONENTS ---
+  const ActionCard = ({ title, iconName, onPress, color }) => (
+    <Pressable 
+      style={({ pressed }) => [
+        styles.actionCard,
+        pressed && styles.actionCardPressed
+      ]} 
+      onPress={onPress}
+    >
+      <View style={styles.actionCardLeft}>
+        <View style={[styles.actionIconContainer, { backgroundColor: color + "15" }]}>
+          <Ionicons name={iconName} size={24} color={color} />
+        </View>
+        <Text style={styles.actionTitle}>{title}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+    </Pressable>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Top Header Section */}
+      {/* --- Header --- */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome, {userName}</Text>
-        {/* Settings/Profile icon on the right, triggers logout */}
+        <View>
+          <Text style={styles.headerGreeting}>Welcome back,</Text>
+          <Text style={styles.headerTitle}>{userName || "User"}</Text>
+        </View>
         <Pressable 
           style={styles.profileIconContainer} 
           onPress={handleLogout}
         >
-          {/* Settings icon; tap to logout */}
-            <Image 
-              source={require('../assets/images/settings.png')} 
-              style={styles.profileIcon}
-              pointerEvents="none"
-            />
-         
+          <Image 
+            source={require('../assets/images/settings.png')} 
+            style={styles.profileIcon}
+          />
         </Pressable>
       </View>
 
-      {/* Content Area - This is intentionally left blank to push tab bar down */}
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Quick actions</Text>
-        <Pressable 
-          style={styles.button} 
-          onPress={() => { router.push('/upload'); }}
-        >
-          <Text style={styles.buttonText}>Upload</Text>
-        </Pressable>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick actions</Text>
+        </View>
 
-        <Pressable 
-          style={styles.button} 
-          onPress={() => { router.push('/history'); }}
-        >
-          <Text style={styles.buttonText}>History</Text>
-        </Pressable>
-      </View>
+        {/* --- Action Cards --- */}
+        <ActionCard 
+          title="Connect"
+          iconName="flash"
+          color={COLORS.blue}
+          onPress={() => { /* router.push('/connect') */ }}
+        />
 
-      {/* Bottom Tab Bar */}
+        <ActionCard 
+          title="Upload"
+          iconName="cloud-upload"
+          color={COLORS.success}
+          onPress={() => router.push('/upload')}
+        />
+
+        <ActionCard 
+          title="History"
+          iconName="time"
+          color={COLORS.warning}
+          onPress={() => router.push('/history')}
+        />
+
+        {/* Decorative Graphic Element */}
+        <View style={styles.decorativeSpace}>
+          <View style={styles.dashLine} />
+          <Text style={styles.decorativeText}>Ready for your next analysis</Text>
+        </View>
+      </ScrollView>
+
+      {/* --- Bottom Tab Bar --- */}
       <View style={styles.tabBar}>
-        {/* Home Tab */}
         <Pressable 
           style={styles.tabItem} 
-          onPress={() => {
-            setActiveTab("Home");
-            // router.push("/home"); // Uncomment to navigate
-          }}
+          onPress={() => setActiveTab("Home")}
         >
           <Image 
             source={require('../assets/images/home.png')} 
@@ -139,21 +160,14 @@ export default function MainScreen() {
               { tintColor: activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab }
             ]} 
           />
-          {/* Fallback Icon */}
-          {/* <Ionicons 
-            name="home" 
-            size={28} 
-            color={activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab} 
-          /> */}
+          <Text style={[styles.tabLabel, { color: activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab }]}>
+            Home
+          </Text>
         </Pressable>
 
-        {/* Profile Tab */}
         <Pressable 
           style={styles.tabItem} 
-          onPress={() => {
-            setActiveTab("Profile");
-            // router.push("/profile"); // Uncomment to navigate
-          }}
+          onPress={() => setActiveTab("Profile")}
         >
           <Image 
             source={require('../assets/images/profile.png')} 
@@ -162,12 +176,9 @@ export default function MainScreen() {
               { tintColor: activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab }
             ]} 
           />
-          {/* Fallback Icon */}
-          {/* <Ionicons 
-            name="person" 
-            size={28} 
-            color={activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab} 
-          /> */}
+          <Text style={[styles.tabLabel, { color: activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab }]}>
+            Profile
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -179,73 +190,123 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  // --- Header Styles ---
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 100,
+  },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  content: {
-    flex: 1, // This pushes the tab bar to the bottom
-    justifyContent: 'center', // Vertically center the buttons
-    alignItems: 'center',     // Horizontally center the buttons
-    paddingHorizontal: 20,     // Add some side padding
-    paddingBottom: 80,         // Ensure buttons aren't obscured by the tab bar
-  },
-  sectionTitle: {
-    fontSize: 16,
-    color: COLORS.inactiveTab,
-    marginBottom: 8,
-  },
-  button: {
-    backgroundColor: COLORS.blue, // High-contrast button so it's clearly visible
-    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 10,
-    width: '100%', // Make buttons full-width (within padding)
-    alignItems: 'center',
-    marginVertical: 12,
-    // subtle shadow (Android uses elevation)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 20,
+    backgroundColor: COLORS.white,
   },
-  buttonText: {
-    color: COLORS.white,
-    fontSize: 18,
+  headerGreeting: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   profileIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: COLORS.iconGray,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileIcon: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
   },
-  // --- Tab Bar Styles ---
+  // Section Header
+  sectionHeader: {
+    marginVertical: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.inactiveTab,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  // Action Cards
+  actionCard: {
+    backgroundColor: COLORS.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderRadius: 24,
+    marginBottom: 16,
+    // Shadows
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  actionCardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
+  actionCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  actionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  // Decorative
+  decorativeSpace: {
+    alignItems: 'center',
+    marginTop: 30,
+    padding: 20,
+  },
+  dashLine: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.gray,
+    borderRadius: 2,
+    marginBottom: 12,
+  },
+  decorativeText: {
+    color: COLORS.inactiveTab,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  // Tab Bar
   tabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: COLORS.gray,
     backgroundColor: COLORS.white,
-    paddingVertical: 10,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10, // Extra padding for home bar
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 15,
   },
   tabItem: {
     alignItems: 'center',
@@ -253,8 +314,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabIcon: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     resizeMode: 'contain',
+    marginBottom: 4,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });
