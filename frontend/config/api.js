@@ -20,6 +20,8 @@ export const API_BASE_URL = getApiBaseUrl();
 console.log('API_BASE_URL:', API_BASE_URL);
 
 export const API_ENDPOINTS = {
+  BASE: API_BASE_URL,
+  SOCKET: `${API_BASE_URL}`,
   LOGIN: `${API_BASE_URL}/api/auth/login`,
   GOOGLE_LOGIN: `${API_BASE_URL}/api/auth/google-login`,
   SIGNUP: `${API_BASE_URL}/api/auth/signup`,

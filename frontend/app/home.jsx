@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect ,useRef} from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { jwtDecode } from "jwt-decode";
 import { Ionicons } from '@expo/vector-icons';
 import axios from "axios";
 import { API_ENDPOINTS } from "../config/api";
+import io from "socket.io-client";
 
 // --- UPDATED COLORS ---
 const COLORS = {
@@ -32,6 +33,8 @@ const COLORS = {
   success: "#4CAF50",
   warning: "#FF9500",
 };
+
+const SOCKET_URL = API_ENDPOINTS.SOCKET
 
 export default function MainScreen() {
   const router = useRouter(); 
@@ -51,6 +54,8 @@ export default function MainScreen() {
   };
 
   const [userName, setUserName] = useState(""); 
+  const [piStatus, setPiStatus] = useState("DISCONNECTED"); // DISCONNECTED, WAITING, CONNECTED
+  const socketRef = useRef(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -67,6 +72,47 @@ export default function MainScreen() {
     };
     fetchUserData();
   }, []);
+  useEffect(() => {
+    // 1. Initialize Socket Connection
+    socketRef.current = io(SOCKET_URL, {
+      transports: ["websocket"],
+    });
+
+    // 2. Listen for Pi Status Updates
+    socketRef.current.on("PI_STATUS_UPDATE", (data) => {
+      setPiStatus(data.status);
+    });
+
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, []);
+  const handleConnectPi = () => {
+    if (piStatus === "WAITING") {
+      socketRef.current.emit("ui-authorize-pi");
+      Alert.alert("Success", "Raspberry Pi authorized and linked!");
+    } else if (piStatus === "DISCONNECTED") {
+      Alert.alert("Offline", "No Raspberry Pi detected in the waiting room.");
+    }
+  };
+
+  const handleTriggerUpload = async () => {
+    if (piStatus !== "CONNECTED") {
+      Alert.alert("Error", "Please connect the Raspberry Pi first.");
+      return;
+    }
+    try {
+      const token = await AsyncStorage.getItem("token");
+      // Trigger the backend to tell the Pi to capture
+      await axios.post(`${SOCKET_URL}/api/analysis/trigger-capture`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      Alert.alert("Capturing", "Instruction sent to Camera Module 3.");
+    } catch (error) {
+      Alert.alert("Error", "Failed to trigger camera.");
+    }
+  };
 
   const [activeTab, setActiveTab] = useState("Home");
 
@@ -120,17 +166,17 @@ export default function MainScreen() {
 
         {/* --- Action Cards --- */}
         <ActionCard 
-          title="Connect"
+          title={piStatus === "CONNECTED" ? "Linked" : "Connect"}
           iconName="flash"
-          color={COLORS.blue}
-          onPress={() => { /* router.push('/connect') */ }}
+          color={piStatus === "CONNECTED" ? COLORS.success : COLORS.blue}
+          onPress={handleConnectPi}
         />
 
         <ActionCard 
-          title="Upload"
-          iconName="cloud-upload"
-          color={COLORS.success}
-          onPress={() => router.push('/upload')}
+          title="Capture & Upload"
+          iconName="camera" // Changed to camera for clarity
+          color={piStatus === "CONNECTED" ? COLORS.blue : COLORS.inactiveTab}
+          onPress={handleTriggerUpload}
         />
 
         <ActionCard 

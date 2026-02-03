@@ -78,8 +78,6 @@ const PORT = process.env.PORT || 5000
 
 app.use("/api/auth", authRoutes);
 app.use("/api/analysis", uploadRoutes);
-app.use("/api")
-
 
 
 server.listen(PORT, '0.0.0.0', () => {
