@@ -7,7 +7,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/analyze', upload.single('dental_image'), async (req, res) => {
   try {
-    const { detectionSummary } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ error: "No image file uploaded." });
@@ -16,7 +15,6 @@ router.post('/analyze', upload.single('dental_image'), async (req, res) => {
     const results = await getDentalTips(
       req.file.buffer, 
       req.file.mimetype, 
-      detectionSummary
     );
 
     res.status(200).json(results);

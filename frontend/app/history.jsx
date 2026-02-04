@@ -85,7 +85,7 @@ export default function HistoryScreen() {
     setIsGeneratingTips(true);
     try {
       // We pass the detection summary already stored in your DB (e.g., "Plaque 26%")
-      const response = await axios.post(`${API_ENDPOINTS.BASE_URL}/api/tips/analyze`, {
+      const response = await axios.post(`${API_ENDPOINTS.ANALYZE}`, {
         imageUrl: selectedImage,
       });
       setAiResponse(response.data);
