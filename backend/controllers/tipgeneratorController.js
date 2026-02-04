@@ -6,7 +6,7 @@ async function getDentalTips(imageBuffer, mimeType) {
   // Use 'gemini-2.0-flash' for fast, multimodal responses
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  const prompt = "The provided image shows a dental analysis with plaque detected at 26% and 15%. Based on these visual findings and the detection boxes, provide 3-4 concise, actionable dental hygiene tips for the user.";
+  const prompt = "You are a dental health expert. Based on the image provided, give detailed dental care tips and recommendations. Be concise and informative.";
 
   const imagePart = {
     inlineData: {

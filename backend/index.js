@@ -75,7 +75,7 @@ io.on("connection", (socket) => {
   // On your Server (index.js or socket handler)
 socket.on("pi-task-finished", () => {
     // Broadcast to the Pi and the Web App that the system is ready again
-    io.emit("PI_STATUS_UPDATE", { status: "WAITING" });
+    io.emit("PI_STATUS_UPDATE", { status: "CONNECTED" });
 });
 });
 
