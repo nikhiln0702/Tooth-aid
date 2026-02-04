@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
   });
 
   // 4. DISCONNECT LOGIC
-  socket.on("disconnect", () => {
+  socket.on("pi-disconnect", () => {
     if (getPiSocket()?.id === socket.id) {
         setPiSocket(null);
         io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });

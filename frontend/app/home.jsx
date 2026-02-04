@@ -115,7 +115,7 @@ export default function MainScreen() {
             text: "Disconnect", 
             style: "destructive",
             onPress: () => {
-              socketRef.current.emit("disconnect");
+              socketRef.current.emit("pi-disconnect");
               Alert.alert("Success", "Raspberry Pi has been disconnected.");
             } 
           }
@@ -134,7 +134,7 @@ export default function MainScreen() {
     try {
       const token = await AsyncStorage.getItem("token");
       // Trigger the backend to tell the Pi to capture
-      await axios.post(`${SOCKET_URL}/api/analysis/trigger-capture`, {}, {
+      await axios.post(`${SOCKET_URL}/api/analysis/capture`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
