@@ -139,6 +139,7 @@ export default function MainScreen() {
       });
       
       Alert.alert("Capturing", "Instruction sent to Camera Module 3.");
+      socketRef.current.emit("ui-authorize-pi");
     } catch (error) {
       Alert.alert("Error", "Failed to trigger camera.");
     }
