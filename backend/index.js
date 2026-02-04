@@ -7,6 +7,7 @@ import { getPiSocket } from './config/socket.js';
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.js'
 import uploadRoutes from './routes/analysis.js'
+import tipRoutes from './routes/tips.js'
 
 dotenv.config()
 connectDB()
@@ -84,6 +85,7 @@ const PORT = process.env.PORT || 5000
 
 app.use("/api/auth", authRoutes);
 app.use("/api/analysis", uploadRoutes);
+app.use("/api/tips", tipRoutes);
 
 
 server.listen(PORT, '0.0.0.0', () => {

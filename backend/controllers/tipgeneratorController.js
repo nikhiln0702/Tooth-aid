@@ -1,8 +1,7 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
+import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-async function getDentalTips(imageBuffer, mimeType) {
+export const getDentalTips = async (imageBuffer, mimeType) => {
   // Use 'gemini-2.0-flash' for fast, multimodal responses
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 

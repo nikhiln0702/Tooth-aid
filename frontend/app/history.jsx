@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from 'react-native'; // To fix localhost issue
 import { API_ENDPOINTS } from "../config/api"; 
+import { ScrollView } from "react-native";
 
 
 // --- Define a consistent color palette ---
@@ -39,6 +40,11 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null); // Track the full item for context
+
+  // --- NEW AI STATES ---
+  const [isGeneratingTips, setIsGeneratingTips] = useState(false);
+  const [aiResponse, setAiResponse] = useState(null);
 
   const fetchHistory = async () => {
     try {
@@ -67,6 +73,28 @@ export default function HistoryScreen() {
     await fetchHistory();
     setRefreshing(false);
   }, []);
+
+  const handleOpenImage = (item) => {
+    const formattedUri = item.imageUrl.replace('localhost', Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
+    setSelectedImage(formattedUri);
+    setSelectedItem(item);
+    setAiResponse(null); // Reset tips when opening a new image
+  };
+
+  const getAiTips = async () => {
+    setIsGeneratingTips(true);
+    try {
+      // We pass the detection summary already stored in your DB (e.g., "Plaque 26%")
+      const response = await axios.post(`${API_ENDPOINTS.BASE_URL}/api/tips/analyze`, {
+        imageUrl: selectedImage,
+      });
+      setAiResponse(response.data);
+    } catch (err) {
+      console.error("AI Tip Error:", err);
+    } finally {
+      setIsGeneratingTips(false);
+    }
+  };
 
   // --- Formatter for the date ---
   const formatDate = (dateString) => {
@@ -119,21 +147,49 @@ export default function HistoryScreen() {
       <Modal
         visible={!!selectedImage}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setSelectedImage(null)}
       >
         <View style={styles.modalBackground}>
           <Pressable style={styles.closeButton} onPress={() => setSelectedImage(null)}>
             <Ionicons name="close-circle" size={40} color="white" />
           </Pressable>
-          
-          {selectedImage && (
+
+          <ScrollView contentContainerStyle={styles.modalScrollContent}>
             <Image 
               source={{ uri: selectedImage }} 
               style={styles.fullImage} 
               resizeMode="contain" 
             />
-          )}
+
+            {/* --- AI TIPS SECTION --- */}
+            <View style={styles.aiSection}>
+              {!aiResponse ? (
+                <Pressable 
+                  style={styles.aiButton} 
+                  onPress={getAiTips}
+                  disabled={isGeneratingTips}
+                >
+                  {isGeneratingTips ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={20} color="white" />
+                      <Text style={styles.aiButtonText}> Tips from AI</Text>
+                    </>
+                  )}
+                </Pressable>
+              ) : (
+                <View style={styles.tipsContainer}>
+                  <Text style={styles.tipsHeader}>AI Analysis & Tips</Text>
+                  {aiResponse.tips.map((tip, index) => (
+                    <Text key={index} style={styles.tipText}>• {tip}</Text>
+                  ))}
+                  <Text style={styles.disclaimerText}>{aiResponse.disclaimer}</Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -210,6 +266,54 @@ const styles = StyleSheet.create({
   fullImage: {
     width: width,
     height: height * 0.8,
+  },
+  modalScrollContent: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  aiSection: {
+    width: '90%',
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  aiButton: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  aiButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tipsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    width: '100%',
+  },
+  tipsHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: COLORS.primary,
+  },
+  tipText: {
+    fontSize: 15,
+    color: COLORS.text,
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: COLORS.subtleText,
+    fontStyle: 'italic',
+    marginTop: 15,
+    textAlign: 'center',
   },
 
 
