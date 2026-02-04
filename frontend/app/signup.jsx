@@ -99,6 +99,7 @@ const handleBackendGoogleSync = async (idToken) => {
     const res = await axios.post(API_ENDPOINTS.GOOGLE_LOGIN, {
       token: idToken,
     });
+    console.log("Backend Response:", res.data);
 
     if (res.status === 200 || res.status === 201) {
       Alert.alert("Success", "Google account linked successfully!");

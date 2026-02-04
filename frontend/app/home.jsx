@@ -95,6 +95,36 @@ export default function MainScreen() {
       Alert.alert("Offline", "No Raspberry Pi detected in the waiting room.");
     }
   };
+   const handlePutPiInWaiting = () => {
+    if (piStatus === "DISCONNECTED") {
+      socketRef.current.emit("register-pi");
+      Alert.alert("Status Updated", "Instruction sent to put Raspberry Pi in the waiting room.");
+    } else {
+      Alert.alert("Info", "Device is not currently availiable.");
+    }
+  };
+
+   const handleDisconnectPi = () => {
+    if (piStatus === "CONNECTED" || piStatus === "WAITING") {
+      Alert.alert(
+        "Disconnect",
+        "Are you sure you want to unlink the Raspberry Pi?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Disconnect", 
+            style: "destructive",
+            onPress: () => {
+              socketRef.current.emit("disconnect");
+              Alert.alert("Success", "Raspberry Pi has been disconnected.");
+            } 
+          }
+        ]
+      );
+    } else {
+      Alert.alert("Info", "No device currently linked.");
+    }
+  };
 
   const handleTriggerUpload = async () => {
     if (piStatus !== "CONNECTED") {
@@ -177,6 +207,20 @@ export default function MainScreen() {
           iconName="camera" // Changed to camera for clarity
           color={piStatus === "CONNECTED" ? COLORS.blue : COLORS.inactiveTab}
           onPress={handleTriggerUpload}
+        />
+
+         <ActionCard 
+          title="Enter Waiting Room"
+          iconName="hourglass"
+          color={COLORS.inactiveTab}
+          onPress={handlePutPiInWaiting}
+        />
+
+        <ActionCard 
+          title="Disconnect Device"
+          iconName="close-circle"
+          color={COLORS.danger}
+          onPress={handleDisconnectPi}
         />
 
         <ActionCard 

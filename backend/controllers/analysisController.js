@@ -10,7 +10,7 @@ export const uploadImage = async (req, res) => {
     const analysis = new Analysis({
       userId: req.user.id,   // comes from JWT middleware
       imageUrl,
-      diagnosisResult: "Pending AI Result" // later replaced by model output
+      diagnosisResult: "AI Result" 
     });
 
     await analysis.save();

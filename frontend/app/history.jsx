@@ -6,11 +6,15 @@ import {
   FlatList, 
   Image, 
   StyleSheet, 
+  Modal, 
+  Pressable,
   ActivityIndicator,
+  Dimensions,
   RefreshControl, // To add pull-to-refresh
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; // For a consistent layout
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from 'react-native'; // To fix localhost issue
 import { API_ENDPOINTS } from "../config/api"; 
@@ -25,13 +29,16 @@ const COLORS = {
   primary: "#007BFF",
   border: "#E0E0E0",
   shadow: "#000000",
+  overlay: "rgba(0,0,0,0.9)"
 };
 
+const { width, height } = Dimensions.get('window');
 
 export default function HistoryScreen() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const fetchHistory = async () => {
     try {
@@ -93,7 +100,10 @@ export default function HistoryScreen() {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Image source={{ uri: item.imageUrl.replace('localhost', Platform.OS === 'android' ? '10.0.2.2' : 'localhost') }} style={styles.image} />
+           <Pressable onPress={() => {console.log("IMAGE CLICKED");
+           setSelectedImage(item.imageUrl.replace('localhost', Platform.OS === 'android' ? '10.0.2.2' : 'localhost'))}}>
+          <Image source={{ uri: item.imageUrl.replace('localhost', Platform.OS === 'android' ? '10.0.2.2' : 'localhost') }} style={styles.image} />
+        </Pressable>
             <View style={styles.info}>
               <Text style={styles.result}>{item.diagnosisResult}</Text>
               <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
@@ -106,6 +116,26 @@ export default function HistoryScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
         }
       />
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalBackground}>
+          <Pressable style={styles.closeButton} onPress={() => setSelectedImage(null)}>
+            <Ionicons name="close-circle" size={40} color="white" />
+          </Pressable>
+          
+          {selectedImage && (
+            <Image 
+              source={{ uri: selectedImage }} 
+              style={styles.fullImage} 
+              resizeMode="contain" 
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -165,6 +195,24 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     color: COLORS.subtleText 
   },
+   modalBackground: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+  },
+  fullImage: {
+    width: width,
+    height: height * 0.8,
+  },
+
+
   // --- Styles for the empty list component ---
   emptyContainer: {
     flex: 1,
