@@ -92,12 +92,15 @@ export const verifyMail = async (req, res) => {
 // Google Login controller
 export const googleLogin = async (req, res) => {
   const { token } = req.body;
+  console.log("verification");
   try {
+    console.log("waiting for ticket");
     // 1. Verify the token with Google
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.WEB_CLIENT_ID,
     });
+    console.log("Google Ticket:", ticket);
     const payload = ticket.getPayload();
     const { email, name , picture, sub} = payload;
     console.log("Google Payload:", payload);
