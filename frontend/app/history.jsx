@@ -81,7 +81,7 @@ export default function HistoryScreen() {
     setAiResponse(null); // Reset tips when opening a new image
   };
 
-  const getAiTips = async () => {
+  const getAiTips = async (retries = 3, delay = 1000) => {
   setIsGeneratingTips(true);
   try {
     // 1. Create a FormData instance
@@ -110,7 +110,15 @@ export default function HistoryScreen() {
     setAiResponse(response.data);
   } catch (err) {
     console.error("AI Tip Error:", err);
-    // Handle 429 Rate Limit errors here if needed
+    
+    // Exponential backoff for rate limiting
+    if (err.response && err.response.status === 429 && retries > 0) {
+      console.log(`Rate limit hit. Retrying in ${delay / 1000}s... (${retries} retries left)`);
+      await new Promise(res => setTimeout(res, delay));
+      return getAiTips(retries - 1, delay * 2); // Double the delay for the next retry
+    }
+    
+    // Handle other errors
   } finally {
     setIsGeneratingTips(false);
   }
