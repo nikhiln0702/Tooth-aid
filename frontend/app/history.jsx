@@ -82,19 +82,39 @@ export default function HistoryScreen() {
   };
 
   const getAiTips = async () => {
-    setIsGeneratingTips(true);
-    try {
-      // We pass the detection summary already stored in your DB (e.g., "Plaque 26%")
-      const response = await axios.post(`${API_ENDPOINTS.ANALYZE}`, {
-        imageUrl: selectedImage,
-      });
-      setAiResponse(response.data);
-    } catch (err) {
-      console.error("AI Tip Error:", err);
-    } finally {
-      setIsGeneratingTips(false);
-    }
-  };
+  setIsGeneratingTips(true);
+  try {
+    // 1. Create a FormData instance
+    const formData = new FormData();
+
+    // 2. Append the image from the URL to FormData
+    // React Native's FormData requires an object with uri, name, and type for files
+    formData.append('dental_image', {
+      uri: selectedImage,
+      name: 'history_analysis.jpg', // You can name this dynamically
+      type: 'image/jpeg',           // Ensure this matches your expected mimeType
+    });
+
+    // 3. Optional: Add detection results if you want Gemini to see them
+    // formData.append('detectionSummary', selectedItem.diagnosisResult);
+
+    // 4. Send the POST request to your existing /analyze endpoint
+    const response = await axios.post(`${API_ENDPOINTS.ANALYZE}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        // Include token if your /analyze route is protected
+        // Authorization: `Bearer ${await AsyncStorage.getItem("token")}`,
+      },
+    });
+
+    setAiResponse(response.data);
+  } catch (err) {
+    console.error("AI Tip Error:", err);
+    // Handle 429 Rate Limit errors here if needed
+  } finally {
+    setIsGeneratingTips(false);
+  }
+};
 
   // --- Formatter for the date ---
   const formatDate = (dateString) => {
