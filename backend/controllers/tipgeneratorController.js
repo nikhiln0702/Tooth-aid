@@ -26,13 +26,37 @@ Provide 4-6 specific, actionable dental care tips based on what you observe in t
     const result = await model.generateContent([prompt, imagePart]);
     const responseText = result.response.text();
     
+    console.log("Raw Gemini response:", responseText);
+    
     // Clean up the response in case it has markdown code blocks
-    const cleanedResponse = responseText
+    let cleanedResponse = responseText
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
     
-    return JSON.parse(cleanedResponse);
+    // Try to extract JSON if it's wrapped in other text
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanedResponse = jsonMatch[0];
+    }
+    
+    try {
+      return JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Cleaned response was:", cleanedResponse);
+    //   // Return a fallback response if parsing fails
+    //   return {
+    //     tips: [
+    //       "Brush your teeth twice daily for at least 2 minutes",
+    //       "Floss daily to remove plaque between teeth",
+    //       "Visit your dentist regularly for check-ups",
+    //       "Limit sugary foods and drinks",
+    //       "Use fluoride toothpaste for stronger enamel"
+    //     ],
+    //     disclaimer: "This is AI-generated advice. Please consult a dental professional for proper diagnosis and treatment."
+    //   };
+    }
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
