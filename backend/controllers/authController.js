@@ -124,6 +124,7 @@ export const googleLogin = async (req, res) => {
         email: user.email
       }
     });
+    console.log(res.data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
