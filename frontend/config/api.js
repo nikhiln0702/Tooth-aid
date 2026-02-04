@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   VERIFY_OTP: `${API_BASE_URL}/api/auth/verify-otp`,
   UPLOAD: `${API_BASE_URL}/api/analysis/upload`,
   HISTORY: `${API_BASE_URL}/api/analysis/history`,
+  DELETE_ANALYSIS: (id) => `${API_BASE_URL}/api/analysis/${id}`,
   LOGOUT: `${API_BASE_URL}/api/auth/logout`,
   ANALYZE: `${API_BASE_URL}/api/tips/analyze`,
 };

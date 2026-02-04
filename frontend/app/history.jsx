@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl, // To add pull-to-refresh
+  Alert,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context'; // For a consistent layout
 import axios from "axios";
@@ -30,7 +31,8 @@ const COLORS = {
   primary: "#007BFF",
   border: "#E0E0E0",
   shadow: "#000000",
-  overlay: "rgba(0,0,0,0.9)"
+  overlay: "rgba(0,0,0,0.9)",
+  danger: "#DC3545",
 };
 
 const { width, height } = Dimensions.get('window');
@@ -129,6 +131,36 @@ export default function HistoryScreen() {
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('en-IN', options);
   };
+
+  // --- Delete analysis function ---
+  const handleDelete = (item) => {
+    Alert.alert(
+      "Delete Analysis",
+      "Are you sure you want to delete this analysis? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: () => deleteAnalysis(item._id)
+        }
+      ]
+    );
+  };
+
+  const deleteAnalysis = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await axios.delete(API_ENDPOINTS.DELETE_ANALYSIS(id), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Remove the item from local state
+      setHistory(prevHistory => prevHistory.filter(item => item._id !== id));
+    } catch (err) {
+      console.error("Error deleting analysis:", err);
+      Alert.alert("Error", "Failed to delete analysis. Please try again.");
+    }
+  };
   
   // --- Component to show when the list is empty ---
   const EmptyListComponent = () => (
@@ -164,6 +196,12 @@ export default function HistoryScreen() {
               <Text style={styles.result}>{item.diagnosisResult}</Text>
               <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
             </View>
+            <Pressable 
+              style={styles.deleteButton} 
+              onPress={() => handleDelete(item)}
+            >
+              <Ionicons name="trash-outline" size={22} color={COLORS.danger} />
+            </Pressable>
           </View>
         )}
         ListEmptyComponent={EmptyListComponent}
@@ -176,10 +214,16 @@ export default function HistoryScreen() {
         visible={!!selectedImage}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setSelectedImage(null)}
+        onRequestClose={() => {
+          setSelectedImage(null);
+          setAiResponse(null);
+        }}
       >
         <View style={styles.modalBackground}>
-          <Pressable style={styles.closeButton} onPress={() => setSelectedImage(null)}>
+          <Pressable style={styles.closeButton} onPress={() => {
+            setSelectedImage(null);
+            setAiResponse(null);
+          }}>
             <Ionicons name="close-circle" size={40} color="white" />
           </Pressable>
 
@@ -257,6 +301,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignItems: 'center',
   },
   image: { 
     width: 80, 
@@ -264,6 +309,10 @@ const styles = StyleSheet.create({
     borderRadius: 8, 
     marginRight: 16,
     backgroundColor: COLORS.border, // Placeholder color
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 'auto',
   },
   info: { 
     flex: 1, 

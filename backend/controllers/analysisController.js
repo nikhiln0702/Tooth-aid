@@ -33,3 +33,22 @@ export const history = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch history" });
   }
 }
+
+export const deleteAnalysis = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the analysis and verify it belongs to the current user
+    const analysis = await Analysis.findOne({ _id: id, userId: req.user.id });
+    
+    if (!analysis) {
+      return res.status(404).json({ error: "Analysis not found or unauthorized" });
+    }
+    
+    await Analysis.findByIdAndDelete(id);
+    
+    res.json({ msg: "Analysis deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete analysis" });
+  }
+}

@@ -1,8 +1,7 @@
 import express from "express";
 import upload from "../middleware/upload.js";
 import { auth } from "../middleware/authMiddleware.js";
-import { uploadImage } from "../controllers/analysisController.js";
-import { history } from "../controllers/analysisController.js";
+import { uploadImage, history, deleteAnalysis } from "../controllers/analysisController.js";
 import { triggerPiCapture } from "../controllers/captureController.js";
 
 const router = express.Router();
@@ -11,6 +10,8 @@ const router = express.Router();
 router.post("/upload",auth,upload.single("image"),uploadImage);
 // GET /analysis/history
 router.get("/history",auth,history)
+// DELETE /analysis/:id
+router.delete("/:id", auth, deleteAnalysis);
 
 // POST /analysis/capture
 router.post("/capture",auth,triggerPiCapture);
