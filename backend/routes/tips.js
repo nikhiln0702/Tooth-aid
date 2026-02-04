@@ -27,7 +27,7 @@ router.post('/analyze', upload.single('dental_image'), async (req, res) => {
       return res.status(429).json({ error: "Rate limit exceeded. Please wait a minute." });
     }
 
-    res.status(500).json({ error: "Internal server error." });
+    res.status(500).json({ error: error.message || "Internal server error." });
   }
 });
 
