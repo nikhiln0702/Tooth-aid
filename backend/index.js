@@ -72,6 +72,25 @@ io.on("connection", (socket) => {
         }
     }
   });
+  socket.on("ui-start-stream", (data) => {
+    console.log("📱 App requested stream start");
+    // Forward it to the Pi
+    // Replace 'piSocket' with whatever variable you use to store the Pi's socket
+    if (piSocket) {
+        piSocket.emit("START_STREAM");
+        console.log("➡️ Forwarded START_STREAM to Pi");
+    } else {
+        console.log("❌ Pi not connected, cannot start stream");
+    }
+});
+
+//Listen for STOP_STREAM from the Mobile App
+socket.on("ui-stop-stream", () => {
+    console.log("📱 App requested stream stop");
+    if (piSocket) {
+        piSocket.emit("STOP_STREAM");
+    }
+});
 
   // On your Server (index.js or socket handler)
 socket.on("pi-task-finished", () => {
