@@ -19,8 +19,7 @@ const io = new Server(server, {
 });
 app.use(express.json());
 
-// Store the Pi's connection globally
-let piSocket = null;
+
 
 io.on("connection", (socket) => {
   // 1. Send current status to anyone who just opened the website
@@ -74,10 +73,12 @@ io.on("connection", (socket) => {
   });
   socket.on("ui-start-stream", (data) => {
     console.log("📱 App requested stream start");
-    // Forward it to the Pi
-    // Replace 'piSocket' with whatever variable you use to store the Pi's socket
-    if (piSocket) {
-        piSocket.emit("START_STREAM");
+    
+    // Use the getter function from your config
+    const authorizedPi = getPiSocket(); 
+
+    if (authorizedPi) {
+        authorizedPi.emit("START_STREAM");
         console.log("➡️ Forwarded START_STREAM to Pi");
     } else {
         console.log("❌ Pi not connected, cannot start stream");
@@ -87,8 +88,10 @@ io.on("connection", (socket) => {
 //Listen for STOP_STREAM from the Mobile App
 socket.on("ui-stop-stream", () => {
     console.log("📱 App requested stream stop");
-    if (piSocket) {
-        piSocket.emit("STOP_STREAM");
+    
+    const authorizedPi = getPiSocket();
+    if (authorizedPi) {
+        authorizedPi.emit("STOP_STREAM");
     }
 });
 
