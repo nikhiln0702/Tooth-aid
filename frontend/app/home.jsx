@@ -1,4 +1,4 @@
-import React, { useState, useEffect ,useRef} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   Image,
   Platform,
   Alert,
+  Modal, // Added Modal
+  ActivityIndicator, // For loading state
   ScrollView,
 } from "react-native";
+// Using native Image with snapshot polling instead of WebView
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,17 +30,18 @@ const COLORS = {
   textSecondary: "#7A7A7A",
   blue: "#005eff",
   gray: "#EAEAEA",
-  iconGray: "#F2F2F2", 
+  iconGray: "#F2F2F2",
   activeTab: "#000000",
   inactiveTab: "#A0A0A0",
   success: "#4CAF50",
   warning: "#FF9500",
 };
-
+const PI_STREAM_URL = "http://10.165.12.1:8080/?action=stream";
+const PI_SNAPSHOT_URL = "http://10.165.12.1:8080/?action=snapshot";
 const SOCKET_URL = API_ENDPOINTS.SOCKET
 
 export default function MainScreen() {
-  const router = useRouter(); 
+  const router = useRouter();
 
   // --- LOGIC (UNTOUCHED) ---
   const handleLogout = async () => {
@@ -53,9 +57,13 @@ export default function MainScreen() {
     }
   };
 
-  const [userName, setUserName] = useState(""); 
+  const [userName, setUserName] = useState("");
   const [piStatus, setPiStatus] = useState("DISCONNECTED"); // DISCONNECTED, WAITING, CONNECTED
   const socketRef = useRef(null);
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const [streamLoading, setStreamLoading] = useState(true);
+  const [displayUri, setDisplayUri] = useState(null);
+  const activeRef = useRef(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -63,8 +71,8 @@ export default function MainScreen() {
         const token = await AsyncStorage.getItem("token");
         if (token) {
           const decodedToken = jwtDecode(token);
-          console.log(decodedToken); 
-          setUserName(decodedToken.name || "User"); 
+          console.log(decodedToken);
+          setUserName(decodedToken.name || "User");
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error);
@@ -95,7 +103,7 @@ export default function MainScreen() {
       Alert.alert("Offline", "No Raspberry Pi detected in the waiting room.");
     }
   };
-   const handlePutPiInWaiting = () => {
+  const handlePutPiInWaiting = () => {
     if (piStatus === "DISCONNECTED") {
       socketRef.current.emit("register-pi");
       Alert.alert("Status Updated", "Instruction sent to put Raspberry Pi in the waiting room.");
@@ -104,26 +112,72 @@ export default function MainScreen() {
     }
   };
 
-   const handleDisconnectPi = () => {
+  const handleDisconnectPi = () => {
     if (piStatus === "CONNECTED" || piStatus === "WAITING") {
       Alert.alert(
         "Disconnect",
         "Are you sure you want to unlink the Raspberry Pi?",
         [
           { text: "Cancel", style: "cancel" },
-          { 
-            text: "Disconnect", 
+          {
+            text: "Disconnect",
             style: "destructive",
             onPress: () => {
               socketRef.current.emit("pi-disconnect");
               Alert.alert("Success", "Raspberry Pi has been disconnected.");
-            } 
+            }
           }
         ]
       );
     } else {
       Alert.alert("Info", "No device currently linked.");
     }
+  };
+
+  // Prefetch loop: download JPEG into cache, then display it instantly
+  const fetchFrame = () => {
+    if (!activeRef.current) return;
+    const url = `${PI_SNAPSHOT_URL}&t=${Date.now()}`;
+    Image.prefetch(url)
+      .then(() => {
+        if (!activeRef.current) return;
+        setDisplayUri(url);
+        setStreamLoading(false);
+        // Immediately fetch next frame
+        fetchFrame();
+      })
+      .catch(() => {
+        if (!activeRef.current) return;
+        // Retry after short delay on error
+        setTimeout(fetchFrame, 500);
+      });
+  };
+
+  const openCamera = () => {
+    console.log(piStatus);
+    if (piStatus !== "CONNECTED") {
+      Alert.alert("Error", "Please connect the Raspberry Pi first.");
+      return;
+    }
+    // 1. Tell Pi to start the MJPEG stream server
+    socketRef.current.emit("ui-start-stream");
+    // 2. Open Modal with loading state
+    setStreamLoading(true);
+    setDisplayUri(null);
+    setCameraVisible(true);
+    
+    // 3. Wait for Pi camera to start, then begin fetching
+    setTimeout(() => {
+      console.log("🚀 Pi ready, starting snapshot loop...");
+      activeRef.current = true;
+      fetchFrame();
+    }, 3000);
+  };
+
+  const closeCamera = () => {
+    activeRef.current = false;
+    socketRef.current.emit("ui-stop-stream");
+    setCameraVisible(false);
   };
 
   const handleTriggerUpload = async () => {
@@ -134,12 +188,18 @@ export default function MainScreen() {
     try {
       const token = await AsyncStorage.getItem("token");
       // Trigger the backend to tell the Pi to capture
-      await axios.post(`${SOCKET_URL}/api/analysis/capture`, {}, {
+      const response = await axios.post(`${SOCKET_URL}/api/analysis/capture`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      Alert.alert("Capturing", "Instruction sent to Camera Module 3.");
-      socketRef.current.emit("ui-authorize-pi");
+
+      if (response.status === 200) {
+        closeCamera();
+        Alert.alert("Capturing", "Photo taken! Analysis will appear in history momentarily.");
+        socketRef.current.emit("ui-authorize-pi");
+      }
+      else {
+        Alert.alert("Error", "Failed to trigger camera.");
+      }
     } catch (error) {
       Alert.alert("Error", "Failed to trigger camera.");
     }
@@ -149,11 +209,11 @@ export default function MainScreen() {
 
   // --- UI COMPONENTS ---
   const ActionCard = ({ title, iconName, onPress, color }) => (
-    <Pressable 
+    <Pressable
       style={({ pressed }) => [
         styles.actionCard,
         pressed && styles.actionCardPressed
-      ]} 
+      ]}
       onPress={onPress}
     >
       <View style={styles.actionCardLeft}>
@@ -169,25 +229,76 @@ export default function MainScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
+      {/* --- CAMERA MODAL --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={cameraVisible}
+        onRequestClose={closeCamera}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+
+            <Text style={styles.modalTitle}>Align Camera</Text>
+
+            {/* Live Stream View */}
+            <View style={styles.streamContainer}>
+              {displayUri && (
+                <Image
+                  source={{ uri: displayUri }}
+                  style={styles.liveStream}
+                  resizeMode="contain"
+                />
+              )}
+
+              {streamLoading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color={COLORS.blue} />
+                  <Text style={{ color: 'white', marginTop: 10 }}>Waking up Pi Camera...</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>({PI_SNAPSHOT_URL})</Text>
+                </View>
+              )}
+              <View style={styles.guideBox} />
+            </View>
+
+            {/* Modal Controls */}
+            <View style={styles.modalControls}>
+              <Pressable style={styles.closeButton} onPress={closeCamera}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+                <Text style={styles.closeButtonText}>Close</Text>
+              </Pressable>
+
+              <Pressable style={styles.captureButton} onPress={handleTriggerUpload}>
+                <View style={styles.captureInnerCircle} />
+              </Pressable>
+
+              {/* Spacer for layout balance */}
+              <View style={{ width: 60 }} />
+            </View>
+
+          </View>
+        </View>
+      </Modal>
+
       {/* --- Header --- */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>Welcome back,</Text>
           <Text style={styles.headerTitle}>{userName || "User"}</Text>
         </View>
-        <Pressable 
-          style={styles.profileIconContainer} 
+        <Pressable
+          style={styles.profileIconContainer}
           onPress={handleLogout}
         >
-          <Image 
-            source={require('../assets/images/settings.png')} 
+          <Image
+            source={require('../assets/images/settings.png')}
             style={styles.profileIcon}
           />
         </Pressable>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -196,35 +307,35 @@ export default function MainScreen() {
         </View>
 
         {/* --- Action Cards --- */}
-        <ActionCard 
+        <ActionCard
           title={piStatus === "CONNECTED" ? "Linked" : "Connect"}
           iconName="flash"
           color={piStatus === "CONNECTED" ? COLORS.success : COLORS.blue}
           onPress={handleConnectPi}
         />
 
-        <ActionCard 
-          title="Capture & Upload"
-          iconName="camera" // Changed to camera for clarity
+        <ActionCard
+          title="Start Camera"
+          iconName="videocam"
           color={piStatus === "CONNECTED" ? COLORS.blue : COLORS.inactiveTab}
-          onPress={handleTriggerUpload}
+          onPress={openCamera}
         />
 
-         <ActionCard 
+        <ActionCard
           title="Enter Waiting Room"
           iconName="hourglass"
           color={COLORS.inactiveTab}
           onPress={handlePutPiInWaiting}
         />
 
-        <ActionCard 
+        <ActionCard
           title="Disconnect Device"
           iconName="close-circle"
           color={COLORS.danger}
           onPress={handleDisconnectPi}
         />
 
-        <ActionCard 
+        <ActionCard
           title="History"
           iconName="time"
           color={COLORS.warning}
@@ -240,32 +351,32 @@ export default function MainScreen() {
 
       {/* --- Bottom Tab Bar --- */}
       <View style={styles.tabBar}>
-        <Pressable 
-          style={styles.tabItem} 
+        <Pressable
+          style={styles.tabItem}
           onPress={() => setActiveTab("Home")}
         >
-          <Image 
-            source={require('../assets/images/home.png')} 
+          <Image
+            source={require('../assets/images/home.png')}
             style={[
-              styles.tabIcon, 
+              styles.tabIcon,
               { tintColor: activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab }
-            ]} 
+            ]}
           />
           <Text style={[styles.tabLabel, { color: activeTab === 'Home' ? COLORS.activeTab : COLORS.inactiveTab }]}>
             Home
           </Text>
         </Pressable>
 
-        <Pressable 
-          style={styles.tabItem} 
+        <Pressable
+          style={styles.tabItem}
           onPress={() => setActiveTab("Profile")}
         >
-          <Image 
-            source={require('../assets/images/profile.png')} 
+          <Image
+            source={require('../assets/images/profile.png')}
             style={[
-              styles.tabIcon, 
+              styles.tabIcon,
               { tintColor: activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab }
-            ]} 
+            ]}
           />
           <Text style={[styles.tabLabel, { color: activeTab === 'Profile' ? COLORS.activeTab : COLORS.inactiveTab }]}>
             Profile
@@ -414,5 +525,88 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  // --- MODAL STYLES ---
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    height: '70%',
+    backgroundColor: COLORS.white,
+    borderRadius: 30,
+    overflow: 'hidden',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: COLORS.text,
+  },
+  streamContainer: {
+    width: '100%',
+    flex: 1, // Take up remaining space
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  liveStream: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guideBox: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 20,
+    borderStyle: 'dashed',
+  },
+  modalControls: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  captureButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.gray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: COLORS.text,
+  },
+  captureInnerCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: COLORS.text,
+  },
+  closeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+  },
+  closeButtonText: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
   },
 });
