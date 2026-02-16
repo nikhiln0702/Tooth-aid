@@ -62,7 +62,7 @@ io.on("connection", (socket) => {
     if (getPiSocket()?.id === socket.id) {
         setPiSocket(null);
         io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
-        console.log("Authorized Pi disconnected.");
+        console.log("Authorized Pi disconnected (manual).");
     } else {
         // If a waiting Pi disconnects, update status back to disconnected
         const waitingRoom = io.sockets.adapter.rooms.get("pi-waiting-room");
@@ -71,15 +71,31 @@ io.on("connection", (socket) => {
         }
     }
   });
+
+  // 4b. NATIVE DISCONNECT — catches network drops, hotspot switches, etc.
+  socket.on("disconnect", (reason) => {
+    console.log(`Socket ${socket.id} disconnected: ${reason}`);
+    if (getPiSocket()?.id === socket.id) {
+        setPiSocket(null);
+        io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+        console.log("⚠️ Authorized Pi lost connection (native disconnect).");
+    }
+  });
   socket.on("ui-start-stream", (data) => {
     console.log("📱 App requested stream start");
     
-    // Use the getter function from your config
     const authorizedPi = getPiSocket(); 
 
     if (authorizedPi) {
-        authorizedPi.emit("START_STREAM");
-        console.log("➡️ Forwarded START_STREAM to Pi");
+        console.log(`➡️ Pi socket id: ${authorizedPi.id}, connected: ${authorizedPi.connected}`);
+        if (authorizedPi.connected) {
+            authorizedPi.emit("START_STREAM");
+            console.log("➡️ Forwarded START_STREAM to Pi");
+        } else {
+            console.log("⚠️ Pi socket exists but is disconnected! Cleaning up...");
+            setPiSocket(null);
+            io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+        }
     } else {
         console.log("❌ Pi not connected, cannot start stream");
     }
