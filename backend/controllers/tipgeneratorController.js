@@ -5,7 +5,7 @@ export const getDentalTips = async (imageBuffer, mimeType) => {
   // Use 'gemini-2.5-flash' for multimodal responses
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const prompt = `You are a dental health expert. Analyze the provided dental/oral image and provide helpful tips.
+  const prompt = `You are a dental health expert in India. Analyze the provided dental/oral image and provide helpful tips.
 
 Return ONLY a valid JSON object in this exact format (no markdown, no code blocks):
 {
@@ -13,7 +13,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
   "disclaimer": "This is AI-generated advice. Please consult a dental professional for proper diagnosis and treatment."
 }
 
-Provide 4-6 specific, actionable dental care tips based on what you observe in the image. Be concise and helpful.`;
+Provide 4-6 specific, actionable dental care tips based on what you observe in the image.Also provide some future probable treatments and some cost estimates.  Be concise and helpful.`;
 
   const imagePart = {
     inlineData: {

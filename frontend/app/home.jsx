@@ -12,7 +12,7 @@ import {
   ActivityIndicator, // For loading state
   ScrollView,
 } from "react-native";
-// Using native Image with snapshot polling instead of WebView
+import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -134,23 +134,10 @@ export default function MainScreen() {
     }
   };
 
-  // Prefetch loop: download JPEG into cache, then display it instantly
-  const fetchFrame = () => {
+  // Simple frame loader — just set the URI, let expo-image handle the rest
+  const loadNextFrame = () => {
     if (!activeRef.current) return;
-    const url = `${PI_SNAPSHOT_URL}&t=${Date.now()}`;
-    Image.prefetch(url)
-      .then(() => {
-        if (!activeRef.current) return;
-        setDisplayUri(url);
-        setStreamLoading(false);
-        // Immediately fetch next frame
-        fetchFrame();
-      })
-      .catch(() => {
-        if (!activeRef.current) return;
-        // Retry after short delay on error
-        setTimeout(fetchFrame, 500);
-      });
+    setDisplayUri(`${PI_SNAPSHOT_URL}&t=${Date.now()}`);
   };
 
   const openCamera = () => {
@@ -159,18 +146,15 @@ export default function MainScreen() {
       Alert.alert("Error", "Please connect the Raspberry Pi first.");
       return;
     }
-    // 1. Tell Pi to start the MJPEG stream server
     socketRef.current.emit("ui-start-stream");
-    // 2. Open Modal with loading state
     setStreamLoading(true);
     setDisplayUri(null);
     setCameraVisible(true);
     
-    // 3. Wait for Pi camera to start, then begin fetching
     setTimeout(() => {
       console.log("🚀 Pi ready, starting snapshot loop...");
       activeRef.current = true;
-      fetchFrame();
+      loadNextFrame();
     }, 3000);
   };
 
@@ -245,10 +229,24 @@ export default function MainScreen() {
             {/* Live Stream View */}
             <View style={styles.streamContainer}>
               {displayUri && (
-                <Image
+                <ExpoImage
                   source={{ uri: displayUri }}
                   style={styles.liveStream}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="none"
+                  onLoad={() => {
+                    if (streamLoading) {
+                      console.log("✅ First frame received!");
+                      setStreamLoading(false);
+                    }
+                    // Chain next frame as soon as this one renders
+                    loadNextFrame();
+                  }}
+                  onError={() => {
+                    if (activeRef.current) {
+                      setTimeout(loadNextFrame, 300);
+                    }
+                  }}
                 />
               )}
 
@@ -256,7 +254,6 @@ export default function MainScreen() {
                 <View style={styles.loadingOverlay}>
                   <ActivityIndicator size="large" color={COLORS.blue} />
                   <Text style={{ color: 'white', marginTop: 10 }}>Waking up Pi Camera...</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>({PI_SNAPSHOT_URL})</Text>
                 </View>
               )}
               <View style={styles.guideBox} />
