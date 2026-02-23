@@ -53,6 +53,7 @@ export default function MainScreen() {
       await AsyncStorage.removeItem("token");
       router.replace({ pathname: "/login" });
     } catch (error) {
+      router.replace({ pathname: "/login" });
       console.error("Error logging out:", error);
     }
   };
