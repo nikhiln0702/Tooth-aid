@@ -2,12 +2,12 @@ import express from 'express'
 import dotenv from 'dotenv'
 import http from 'http'
 import { Server } from 'socket.io';
-import { setPiSocket } from './config/socket.js';
-import { getPiSocket } from './config/socket.js';
+import { setPiSocket, getPiSocket, setIo, getIo } from './config/socket.js';
 import connectDB from './config/db.js'
 import authRoutes from './routes/auth.js'
 import uploadRoutes from './routes/analysis.js'
 import tipRoutes from './routes/tips.js'
+import consultRoutes from './routes/consult.js'
 
 dotenv.config()
 connectDB()
@@ -17,6 +17,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" } // Allows the Pi to connect from a different "origin"
 });
+setIo(io); // Set the global io instance
 app.use(express.json());
 
 
@@ -24,22 +25,27 @@ app.use(express.json());
 io.on("connection", (socket) => {
   // 1. Send current status to anyone who just opened the website
   const currentPi = getPiSocket();
-  socket.emit("PI_STATUS_UPDATE", { 
-    status: currentPi ? "CONNECTED" : "DISCONNECTED" 
+  socket.emit("PI_STATUS_UPDATE", {
+    status: currentPi ? "CONNECTED" : "DISCONNECTED",
+    localIp: currentPi ? currentPi.localPiIp : null
   });
 
   // 2. PI SIDE: Pi connects and enters the 'Waiting Room'
-  socket.on("register-pi", () => {
-    socket.join("pi-waiting-room"); 
-    io.emit("PI_STATUS_UPDATE", { status: "WAITING" });
-    console.log("Raspberry Pi is in the waiting room...");
+  socket.on("register-pi", (data) => {
+    socket.join("pi-waiting-room");
+    socket.localPiIp = data?.localIp || null;
+    io.emit("PI_STATUS_UPDATE", { 
+        status: "WAITING",
+        localIp: socket.localPiIp 
+    });
+    console.log(`🍓 Raspberry Pi is waiting. Local IP: ${socket.localPiIp}`);
   });
 
   // 3. UI SIDE: User clicks the 'Connect' button in the UI
   socket.on("ui-authorize-pi", () => {
     // Check if there is a Pi actually waiting in the room
     const waitingRoom = io.sockets.adapter.rooms.get("pi-waiting-room");
-    
+
     if (waitingRoom && waitingRoom.size > 0) {
       // Get the first socket ID in the waiting room
       const piSocketId = Array.from(waitingRoom)[0];
@@ -48,9 +54,12 @@ io.on("connection", (socket) => {
       if (actualPiSocket) {
         setPiSocket(actualPiSocket); // Move to global store (Authorized)
         actualPiSocket.leave("pi-waiting-room"); // Remove from waiting
-        
-        io.emit("PI_STATUS_UPDATE", { status: "CONNECTED" });
-        console.log("Raspberry Pi has been authorized by User.");
+
+        io.emit("PI_STATUS_UPDATE", { 
+            status: "CONNECTED",
+            localIp: actualPiSocket.localPiIp 
+        });
+        console.log("📱 Raspberry Pi authorized. IP passed to app.");
       }
     } else {
       socket.emit("error", { message: "No Raspberry Pi found in waiting room." });
@@ -60,15 +69,15 @@ io.on("connection", (socket) => {
   // 4. DISCONNECT LOGIC
   socket.on("pi-disconnect", () => {
     if (getPiSocket()?.id === socket.id) {
-        setPiSocket(null);
-        io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
-        console.log("Authorized Pi disconnected (manual).");
+      setPiSocket(null);
+      io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+      console.log("Authorized Pi disconnected (manual).");
     } else {
-        // If a waiting Pi disconnects, update status back to disconnected
-        const waitingRoom = io.sockets.adapter.rooms.get("pi-waiting-room");
-        if (!waitingRoom || waitingRoom.size === 0) {
-            io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
-        }
+      // If a waiting Pi disconnects, update status back to disconnected
+      const waitingRoom = io.sockets.adapter.rooms.get("pi-waiting-room");
+      if (!waitingRoom || waitingRoom.size === 0) {
+        io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+      }
     }
   });
 
@@ -76,46 +85,46 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log(`Socket ${socket.id} disconnected: ${reason}`);
     if (getPiSocket()?.id === socket.id) {
-        setPiSocket(null);
-        io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
-        console.log("⚠️ Authorized Pi lost connection (native disconnect).");
+      setPiSocket(null);
+      io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+      console.log("⚠️ Authorized Pi lost connection (native disconnect).");
     }
   });
   socket.on("ui-start-stream", (data) => {
     console.log("📱 App requested stream start");
-    
-    const authorizedPi = getPiSocket(); 
+
+    const authorizedPi = getPiSocket();
 
     if (authorizedPi) {
-        console.log(`➡️ Pi socket id: ${authorizedPi.id}, connected: ${authorizedPi.connected}`);
-        if (authorizedPi.connected) {
-            authorizedPi.emit("START_STREAM");
-            console.log("➡️ Forwarded START_STREAM to Pi");
-        } else {
-            console.log("⚠️ Pi socket exists but is disconnected! Cleaning up...");
-            setPiSocket(null);
-            io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
-        }
+      console.log(`➡️ Pi socket id: ${authorizedPi.id}, connected: ${authorizedPi.connected}`);
+      if (authorizedPi.connected) {
+        authorizedPi.emit("START_STREAM");
+        console.log("➡️ Forwarded START_STREAM to Pi");
+      } else {
+        console.log("⚠️ Pi socket exists but is disconnected! Cleaning up...");
+        setPiSocket(null);
+        io.emit("PI_STATUS_UPDATE", { status: "DISCONNECTED" });
+      }
     } else {
-        console.log("❌ Pi not connected, cannot start stream");
+      console.log("❌ Pi not connected, cannot start stream");
     }
-});
+  });
 
-//Listen for STOP_STREAM from the Mobile App
-socket.on("ui-stop-stream", () => {
+  //Listen for STOP_STREAM from the Mobile App
+  socket.on("ui-stop-stream", () => {
     console.log("📱 App requested stream stop");
-    
+
     const authorizedPi = getPiSocket();
     if (authorizedPi) {
-        authorizedPi.emit("STOP_STREAM");
+      authorizedPi.emit("STOP_STREAM");
     }
-});
+  });
 
   // On your Server (index.js or socket handler)
-socket.on("pi-task-finished", () => {
+  socket.on("pi-task-finished", () => {
     // Broadcast to the Pi and the Web App that the system is ready again
     io.emit("PI_STATUS_UPDATE", { status: "CONNECTED" });
-});
+  });
 });
 
 const PORT = process.env.PORT || 5000
@@ -124,6 +133,7 @@ const PORT = process.env.PORT || 5000
 app.use("/api/auth", authRoutes);
 app.use("/api/analysis", uploadRoutes);
 app.use("/api/tips", tipRoutes);
+app.use("/api/consult", consultRoutes);
 
 
 server.listen(PORT, '0.0.0.0', () => {

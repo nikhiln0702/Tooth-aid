@@ -35,6 +35,9 @@ export const API_ENDPOINTS = {
   DELETE_ANALYSIS: (id) => `${API_BASE_URL}/api/analysis/${id}`,
   LOGOUT: `${API_BASE_URL}/api/auth/logout`,
   ANALYZE: `${API_BASE_URL}/api/tips/analyze`,
+  CONSULT_EVENT_TYPES: `${API_BASE_URL}/api/consult/event-types`,
+  CONSULT_SLOTS: `${API_BASE_URL}/api/consult/slots`,
+  CONSULT_BOOK: `${API_BASE_URL}/api/consult/book`,
 };
 //android :654250670060-lj8ehlprjagjq8bjusgfcgcihm8rts9b.apps.googleusercontent.com
 //ios: 654250670060-kmp0u9b4c27c9o5gj2ahb8f1gjg2im2b.apps.googleusercontent.com

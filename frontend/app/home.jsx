@@ -20,6 +20,7 @@ import { jwtDecode } from "jwt-decode";
 import { Ionicons } from '@expo/vector-icons';
 import axios from "axios";
 import { API_ENDPOINTS } from "../config/api";
+import { useConfig } from '../context/ConfigContext';
 import io from "socket.io-client";
 
 // --- UPDATED COLORS ---
@@ -35,6 +36,8 @@ const COLORS = {
   inactiveTab: "#A0A0A0",
   success: "#4CAF50",
   warning: "#FF9500",
+  danger: "#FF3B30",           // ← add this
+  overlay: "rgba(0,0,0,0.7)",
 };
 const PI_STREAM_URL = "http://10.165.12.1:8080/?action=stream";
 const PI_SNAPSHOT_URL = "http://10.165.12.1:8080/?action=snapshot";
@@ -42,6 +45,7 @@ const SOCKET_URL = API_ENDPOINTS.SOCKET
 
 export default function MainScreen() {
   const router = useRouter();
+  const { savePiIpAddress, getSnapshotUrl, isConfigLoaded, piIpAddress } = useConfig();
 
   // --- LOGIC (UNTOUCHED) ---
   const handleLogout = async () => {
@@ -81,17 +85,55 @@ export default function MainScreen() {
     };
     fetchUserData();
   }, []);
+  // REPLACE your existing socket useEffect with this one
+  // It adds the ANALYSIS_COMPLETE listener
+
   useEffect(() => {
     // 1. Initialize Socket Connection
-    socketRef.current = io(SOCKET_URL, {
-      transports: ["websocket"],
-    });
+    socketRef.current = io(SOCKET_URL, { transports: ["websocket"] });
 
-    // 2. Listen for Pi Status Updates
+    // 2. Listen for Pi Status Updates (existing)
     socketRef.current.on("PI_STATUS_UPDATE", (data) => {
       setPiStatus(data.status);
+      
+      // ✨ If the server sent an IP, save it!
+      if (data.localIp) {
+        savePiIpAddress(data.localIp);
+      }
     });
 
+    // 3. NEW — Listen for analysis result from server
+    // When the Pi finishes uploading and Gemini runs,
+    // the server emits this event with the full result.
+    // We close the camera modal and navigate to the result screen.
+    socketRef.current.on("ANALYSIS_COMPLETE", (data) => {
+      console.log("Analysis complete received:", data);
+
+      // Close the camera modal
+      activeRef.current = false;
+      setCameraVisible(false);
+
+      // Navigate to result screen — pass all data as params
+      // Arrays must be JSON stringified since router params are strings
+      router.push({
+        pathname: "/result",
+        params: {
+          analysisId: data.analysisId,
+          imageUrl: data.imageUrl,
+          diagnosisResult: data.diagnosisResult,
+          conditions: JSON.stringify(data.conditions || []),
+          severity: data.severity,
+          confidence: data.confidence?.toString() || "",
+          geminiTips: JSON.stringify(data.geminiTips || []),
+          geminiDisclaimer: data.geminiDisclaimer || "",
+          geminiAnalysed: data.geminiAnalysed?.toString() || "false",
+          urgency: data.urgency || "unknown",
+          estimatedCostINR: data.estimatedCostINR || "",
+        }
+      });
+    });
+
+    // 4. Cleanup on unmount
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
@@ -138,7 +180,14 @@ export default function MainScreen() {
   // Simple frame loader — just set the URI, let expo-image handle the rest
   const loadNextFrame = () => {
     if (!activeRef.current) return;
-    setDisplayUri(`${PI_SNAPSHOT_URL}&t=${Date.now()}`);
+    
+    // Failsafe: Don't try to load if we don't have an IP yet
+    if (!piIpAddress) {
+        console.log("Waiting for IP address...");
+        return;
+    }
+    
+    setDisplayUri(`${getSnapshotUrl()}&t=${Date.now()}`);
   };
 
   const openCamera = () => {
@@ -151,7 +200,7 @@ export default function MainScreen() {
     setStreamLoading(true);
     setDisplayUri(null);
     setCameraVisible(true);
-    
+
     setTimeout(() => {
       console.log("🚀 Pi ready, starting snapshot loop...");
       activeRef.current = true;
