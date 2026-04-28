@@ -146,14 +146,14 @@ export default function MainScreen() {
       Alert.alert("Offline", "No Raspberry Pi detected in the waiting room.");
     }
   };
-  const handlePutPiInWaiting = () => {
-    if (piStatus === "DISCONNECTED") {
-      socketRef.current.emit("register-pi");
-      Alert.alert("Status Updated", "Instruction sent to put Raspberry Pi in the waiting room.");
-    } else {
-      Alert.alert("Info", "Device is not currently availiable.");
-    }
-  };
+  // const handlePutPiInWaiting = () => {
+  //   if (piStatus === "DISCONNECTED") {
+  //     socketRef.current.emit("register-pi");
+  //     Alert.alert("Status Updated", "Instruction sent to put Raspberry Pi in the waiting room.");
+  //   } else {
+  //     Alert.alert("Info", "Device is not currently availiable.");
+  //   }
+  // };
 
   const handleDisconnectPi = () => {
     if (piStatus === "CONNECTED" || piStatus === "WAITING") {
@@ -367,13 +367,13 @@ export default function MainScreen() {
           color={piStatus === "CONNECTED" ? COLORS.blue : COLORS.inactiveTab}
           onPress={openCamera}
         />
-
+{/* 
         <ActionCard
           title="Enter Waiting Room"
           iconName="hourglass"
           color={COLORS.inactiveTab}
           onPress={handlePutPiInWaiting}
-        />
+        /> */}
 
         <ActionCard
           title="Disconnect Device"
