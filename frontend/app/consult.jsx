@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { API_ENDPOINTS } from "../config/api";
 
 const COLORS = {
@@ -84,6 +85,15 @@ export default function ConsultScreen() {
 
             // Pre-fill name and email from stored token if possible
             // Also fetch event types from Cal.com
+            if (token) {
+                try {
+                    const decodedToken = jwtDecode(token);
+                    if (decodedToken.name) setName(decodedToken.name);
+                    if (decodedToken.email) setEmail(decodedToken.email);
+                } catch (decodeErr) {
+                    console.log("Could not decode token for pre-fill");
+                }
+            }
             const res = await axios.get(
                 `${API_ENDPOINTS.BASE}/api/consult/event-types`,
                 { headers: { Authorization: `Bearer ${token}` } }
