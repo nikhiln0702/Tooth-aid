@@ -231,7 +231,7 @@ const handleBackendGoogleSync = async (idToken) => {
 
           {/* --- Bottom Section --- */}
           <View style={styles.bottomSection}>
-            {/* Google Signup Button */}
+            {/* Google Signup Button
             <Pressable
              style={({ pressed }) => [
                styles.button,
@@ -247,7 +247,7 @@ const handleBackendGoogleSync = async (idToken) => {
                 style={[styles.socialIcon, { width: 20, height: 20 }]}
               />
               <Text style={styles.socialButtonText}>Continue with Google</Text>
-            </Pressable>
+            </Pressable> */}
 
             {/* Footer Legal Text */}
             <Text style={[styles.linkButtonText, styles.footerText]}>

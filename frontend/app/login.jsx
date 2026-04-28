@@ -201,7 +201,7 @@ function LoginScreen() {
           {/* --- Bottom Section --- */}
           <View style={styles.bottomSection}>
 
-            {/* Continue with Google */}
+            {/* Continue with Google
             <Pressable
              style={({ pressed }) => [
                styles.button,
@@ -214,7 +214,7 @@ function LoginScreen() {
                style={[styles.socialIcon, { width: 20, height: 20 }]} // Set width/height for the image
              />
              <Text style={styles.socialButtonText}>Continue with Google</Text>
-           </Pressable>
+           </Pressable> */}
 
             
 
