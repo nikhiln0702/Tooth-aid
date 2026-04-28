@@ -25,6 +25,27 @@ app.use(express.json());
 io.on("connection", (socket) => {
   // 1. Send current status to anyone who just opened the website
   const currentPi = getPiSocket();
+  const waitingRoom = io.sockets.adapter.rooms.get("pi-waiting-room");
+  const isPiWaiting = waitingRoom && waitingRoom.size > 0;
+  let initialStatus = "DISCONNECTED";
+  let initialIp = null;
+
+  if (currentPi) {
+    initialStatus = "CONNECTED";
+    initialIp = currentPi.localPiIp;
+  } else if (isPiWaiting) {
+    initialStatus = "WAITING";
+    // Grab the IP of the Pi that is waiting
+    const piSocketId = Array.from(waitingRoom)[0];
+    const piSocket = io.sockets.sockets.get(piSocketId);
+    initialIp = piSocket ? piSocket.localPiIp : null;
+  }
+
+  // Send the accurate status to the newly opened app
+  socket.emit("PI_STATUS_UPDATE", {
+    status: initialStatus,
+    localIp: initialIp
+  });
   socket.emit("PI_STATUS_UPDATE", {
     status: currentPi ? "CONNECTED" : "DISCONNECTED",
     localIp: currentPi ? currentPi.localPiIp : null
